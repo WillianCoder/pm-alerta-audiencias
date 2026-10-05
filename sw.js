@@ -1,5 +1,5 @@
-/* PM Alerta — service worker: funciona offline e abre o app ao tocar na notificação. */
-const CACHE = 'pma-v1';
+/* Alerta Audiência — service worker: funciona offline e abre o app ao tocar na notificação. */
+const CACHE = 'pma-v2';
 const SHELL = [
   './', 'index.html', 'privacidade.html', 'termos.html', 'manifest.webmanifest',
   'assets/css/styles.css', 'assets/js/frame-guard.js', 'assets/js/config.js', 'assets/js/store.js', 'assets/js/util.js',

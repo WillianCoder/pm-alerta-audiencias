@@ -1,5 +1,5 @@
 /*
- * PM Alerta — anúncios.
+ * Alerta Audiência — anúncios.
  * Cada posição da tela (topo, destaque, lista, rodape) é configurada no painel:
  *   'off'     → nada aparece
  *   'adsense' → bloco automático do Google AdSense (renda automática)

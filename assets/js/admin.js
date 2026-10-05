@@ -1,5 +1,5 @@
 /*
- * PM Alerta — painel administrativo.
+ * Alerta Audiência — painel administrativo.
  * Só abre para contas listadas na coleção "admins" do Firestore (ver README).
  * Mesmo que alguém altere este arquivo no navegador, as regras do Firestore
  * recusam qualquer gravação de quem não é administrador.

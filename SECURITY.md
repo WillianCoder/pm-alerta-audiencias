@@ -1,4 +1,4 @@
-# Segurança do PM Alerta
+# Segurança do Alerta Audiência
 
 ## Como reportar uma falha
 **Não abra uma issue pública.** Use "Report a vulnerability" na aba *Security* do repositório ou o e-mail de suporte do app.

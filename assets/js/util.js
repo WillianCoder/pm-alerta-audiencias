@@ -1,4 +1,4 @@
-/* PM Alerta — utilitários puros (sem acesso a rede ou banco). */
+/* Alerta Audiência — utilitários puros (sem acesso a rede ou banco). */
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -94,7 +94,7 @@ export function buildICS(lista, lembretesMin = [10080, 1440, 120]) {
     const alarms = lembretesMin.map((m) => `BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:${icsEsc('Audiência: ' + (a.titulo || 'audiência'))}\r\nTRIGGER:-PT${m}M\r\nEND:VALARM`).join('\r\n');
     return `BEGIN:VEVENT\r\nUID:${a.id || Math.random().toString(36).slice(2)}@pm-alerta\r\nDTSTAMP:${now}\r\nDTSTART:${icsDate(ini)}\r\nDTEND:${icsDate(fim)}\r\nSUMMARY:${icsEsc('⚖️ Audiência — ' + (a.titulo || a.vara || ''))}\r\nLOCATION:${icsEsc(a.local || a.vara || '')}\r\nDESCRIPTION:${icsEsc(desc)}\r\n${alarms}\r\nEND:VEVENT`;
   }).join('\r\n');
-  return `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//PM Alerta//Audiencias//PT-BR\r\nCALSCALE:GREGORIAN\r\n${ev}\r\nEND:VCALENDAR\r\n`;
+  return `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Alerta Audiência//Audiencias//PT-BR\r\nCALSCALE:GREGORIAN\r\n${ev}\r\nEND:VCALENDAR\r\n`;
 }
 export function download(nome, conteudo, tipo) {
   const url = URL.createObjectURL(new Blob([conteudo], { type: tipo }));

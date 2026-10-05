@@ -1,5 +1,5 @@
 /*
- * PM Alerta — configuração de instalação.
+ * Alerta Audiência — configuração de instalação.
  * Só o que NÃO muda pelo painel fica aqui: a conexão com o Firebase.
  * Preços, Pix, anúncios e textos são editados no Painel do Administrador (admin.html)
  * e ficam salvos no Firestore (documento config/site).

@@ -1,4 +1,4 @@
-/* PM Alerta — aplicativo principal. */
+/* Alerta Audiência — aplicativo principal. */
 import { createStore, authMessage, isPremium } from './store.js';
 import { $, $$, esc, safeUrl, toast, when, fmtData, fmtHora, countdown, formatCNJ, validCNJ, pixPayload, qrSvg, novoTxid, buildICS, download, googleAgendaUrl, mapsUrl, wazeUrl } from './util.js';
 import { adHtml, fillAds } from './ads.js';
@@ -316,7 +316,7 @@ function vPremium() {
   }
   return `
   <section class="card premium">
-    <p class="eyebrow">PM Alerta Premium</p>
+    <p class="eyebrow">Alerta Audiência Premium</p>
     <h1>R$ ${esc(p.preco)} <small>por ${periodo}</small></h1>
     <p class="muted">Pagamento único por Pix. Sem renovação automática, sem cartão.</p>
     <ul class="checks">${p.beneficios.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>
@@ -328,7 +328,7 @@ function vPremium() {
 
 function pixBox(txid) {
   const p = S.site.premium, pix = S.site.pix;
-  const code = pixPayload(pix, p.preco, txid, 'PM Alerta Premium');
+  const code = pixPayload(pix, p.preco, txid, 'Alerta Audiência Premium');
   return `<section class="card center">
     <h2>Pague com Pix</h2>
     <p>Valor: <b>R$ ${esc(Number(p.preco).toFixed(2).replace('.', ','))}</b> · Código: <b>${esc(txid)}</b></p>
@@ -343,7 +343,7 @@ function pixBox(txid) {
 function vApoie() {
   const pix = S.site.pix;
   if (!pix.chave) return '<p>Doações ainda não configuradas.</p>';
-  return `<h1>Apoie o PM Alerta 💙</h1>
+  return `<h1>Apoie o Alerta Audiência 💙</h1>
   <p class="muted">O app é mantido de forma independente. Qualquer valor ajuda a manter os servidores e criar novos recursos.</p>
   <div class="row wrap">${(pix.doacoes || []).map((v) => `<button class="btn" data-act="doar" data-v="${esc(v)}">R$ ${esc(v)}</button>`).join('')}<button class="btn" data-act="doar" data-v="0">Outro valor</button></div>
   <div id="doa-box"></div>`;
@@ -448,12 +448,12 @@ app.addEventListener('click', async (e) => {
   if (act === 'doar') {
     let v = Number(b.dataset.v);
     if (!v) { v = Number(String(prompt('Valor da doação (R$):', '10') || '').replace(',', '.')); if (!(v > 0)) return; }
-    const code = pixPayload(S.site.pix, v, 'DOACAO', 'Apoio PM Alerta');
+    const code = pixPayload(S.site.pix, v, 'DOACAO', 'Apoio Alerta Audiência');
     $('#doa-box').innerHTML = `<section class="card center"><p>Doação de <b>R$ ${esc(v.toFixed(2).replace('.', ','))}</b></p><div class="qr">${qrSvg(code)}</div><textarea readonly rows="3" class="mono" id="pix-code">${esc(code)}</textarea><button class="btn" data-act="copy" data-v="${esc(code)}">📋 Copiar Pix</button><p>Obrigado! 💙</p></section>`;
     return;
   }
   if (act === 'from-hit') { try { sessionStorage.setItem('pma-prefill', JSON.stringify({ proc: b.dataset.proc, org: b.dataset.org })); } catch { /* ok */ } go('#/nova'); return; }
-  if (act === 'export') { download('meus-dados-pm-alerta.json', JSON.stringify({ email: S.user.email, perfil: S.perfil, audiencias: S.aud, pagamentos: await S.store.meusPagamentos() }, null, 2), 'application/json'); return; }
+  if (act === 'export') { download('meus-dados-alerta-audiencia.json', JSON.stringify({ email: S.user.email, perfil: S.perfil, audiencias: S.aud, pagamentos: await S.store.meusPagamentos() }, null, 2), 'application/json'); return; }
   if (act === 'sair') { await S.store.signOut(); location.hash = '#/entrar'; return; }
   if (act === 'excluir-conta') {
     if (prompt('Para confirmar, digite EXCLUIR') !== 'EXCLUIR') return;
@@ -469,7 +469,7 @@ async function pedirNotificacao(teste) {
   }
   const p = await Notification.requestPermission();
   if (p !== 'granted') return toast('Notificações bloqueadas. Libere nas configurações do navegador.', 'err');
-  if (teste) notify('PM Alerta 🔔', 'Notificações ativadas! Você será lembrado das suas audiências.', 'teste');
+  if (teste) notify('Alerta Audiência 🔔', 'Notificações ativadas! Você será lembrado das suas audiências.', 'teste');
   render();
 }
 async function notify(title, body, tag) {

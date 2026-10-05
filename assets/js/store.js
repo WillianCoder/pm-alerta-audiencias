@@ -1,5 +1,5 @@
 /*
- * PM Alerta — camada de dados.
+ * Alerta Audiência — camada de dados.
  * Mesma interface para dois modos:
  *   - Firebase (produção): Auth por e-mail/senha + Firestore protegido por regras (firestore.rules).
  *   - Demonstração: localStorage, quando config.js não tem Firebase configurado.

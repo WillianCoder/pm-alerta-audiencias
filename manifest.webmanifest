@@ -1,6 +1,6 @@
 {
-  "name": "PM Alerta — Anotador de Audiências",
-  "short_name": "PM Alerta",
+  "name": "Alerta Audiência — Anotador de Audiências",
+  "short_name": "Alerta Audiência",
   "description": "Lembretes de audiências judiciais.",
   "lang": "pt-BR",
   "start_url": "./#/",

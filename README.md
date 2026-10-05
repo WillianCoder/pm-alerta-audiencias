@@ -1,4 +1,4 @@
-# 🚔 PM Alerta — Anotador de Audiências
+# ⚖️ Alerta Audiência — Anotador de Audiências
 
 > Nunca mais perca uma audiência. Lembretes no celular, "do que se trata" em segundos e busca do seu nome em fontes públicas — para qualquer pessoa.
 

@@ -1,5 +1,5 @@
 rules_version = '2';
-// PM Alerta — regras de segurança do Firestore.
+// Alerta Audiência — regras de segurança do Firestore.
 // É AQUI que a segurança acontece: o navegador nunca decide quem é Premium ou administrador.
 service cloud.firestore {
   match /databases/{database}/documents {
