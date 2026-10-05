@@ -1,4 +1,3 @@
-# Ativo quando esta pasta virar a raiz do repositório próprio (pm-alerta-audiencias).
 name: Publicar no GitHub Pages
 on:
   push:
@@ -20,6 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - run: bash scripts/build-site.sh
       - uses: actions/upload-pages-artifact@v3
         with:

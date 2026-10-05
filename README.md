@@ -59,7 +59,7 @@ Sem Firebase configurado o app roda em **modo demonstração** (dados só no nav
 4. **Doações** — página "Apoie" com QR Code Pix.
 
 ## 🗺️ Próximos passos
-- [ ] Repositório próprio `pm-alerta-audiencias` (esta pasta já está pronta para ser a raiz dele).
+- [x] Repositório próprio.
 - [ ] **Pix com confirmação automática** (Mercado Pago / Efí / Asaas + Cloud Function de webhook) — elimina a aprovação manual.
 - [ ] **Push pelo servidor** (Firebase Cloud Messaging + Cloud Function agendada): lembrete chega mesmo com o app fechado há dias.
 - [ ] **Monitoramento diário automático** do nome (job agendado) com alerta por push/e-mail.
