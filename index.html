@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.googletagservices.com https://*.doubleclick.net https://*.adtrafficquality.google https://fundingchoicesmessages.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://www.gstatic.com https://comunicaapi.pje.jus.br https://api.queridodiario.ok.org.br https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google; frame-src https://*.firebaseapp.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://*.adtrafficquality.google; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>PM Alerta — Anotador de Audiências</title>
+<meta name="description" content="Lembretes de audiências judiciais para policiais militares e qualquer pessoa. Anote intimações, receba alertas no celular e saiba do que se trata.">
+<meta name="theme-color" content="#0b1f3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PM Alerta">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/img/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/img/icon-192.png">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script src="assets/js/frame-guard.js"></script>
+<script type="module" src="assets/js/app.js"></script>
+<script defer src="assets/js/vendor/qrcode.js"></script>
+</head>
+<body>
+<a class="skip" href="#app">Pular para o conteúdo</a>
+<header class="top">
+  <a class="brand" href="#/"><img src="assets/img/icon.svg" alt="" width="28" height="28"> PM Alerta</a>
+  <a class="top-link" href="#/conta" aria-label="Minha conta">👤</a>
+</header>
+<div id="demo-banner" class="demo" hidden>Modo demonstração — dados salvos só neste aparelho. Configure o Firebase para usar de verdade.</div>
+<main id="app" tabindex="-1"><p class="loading-screen">Carregando…</p></main>
+<nav id="nav" class="tabbar" hidden aria-label="Navegação principal">
+  <a href="#/"><span>🏠</span>Início</a>
+  <a href="#/audiencias"><span>⚖️</span>Audiências</a>
+  <a href="#/nova" class="fab"><span>＋</span>Nova</a>
+  <a href="#/buscar"><span>🔎</span>Buscar</a>
+  <a href="#/premium"><span>⭐</span>Premium</a>
+</nav>
+<noscript>Ative o JavaScript para usar o PM Alerta.</noscript>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Cabeçalhos de segurança HTTP (Cloudflare Pages / Netlify / Firebase Hosting via firebase.json).
+# O GitHub Pages ignora este arquivo; lá valem a CSP declarada nas páginas e o frame-guard.js.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://www.gstatic.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.googletagservices.com https://*.doubleclick.net https://*.adtrafficquality.google https://fundingchoicesmessages.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://www.gstatic.com https://comunicaapi.pje.jus.br https://api.queridodiario.ok.org.br https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google; frame-src https://*.firebaseapp.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://*.adtrafficquality.google; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+
+/admin.html
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+
+/sw.js
+  Cache-Control: no-cache

@@ -1,0 +1,70 @@
+rules_version = '2';
+// PM Alerta — regras de segurança do Firestore.
+// É AQUI que a segurança acontece: o navegador nunca decide quem é Premium ou administrador.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
+    function isAdmin() { return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function str(v, max) { return v is string && v.size() <= max; }
+    function optStr(d, k, max) { return !(k in d) || str(d[k], max); }
+
+    // Perfil: o próprio usuário edita seus dados, mas NUNCA o campo "plano" (Premium).
+    function perfilValido(d) {
+      return d.keys().hasOnly(['perfil', 'nome', 'uf', 'nomeGuerra', 'posto', 'unidade', 'lembretes', 'aceiteEm', 'email', 'criadoEm', 'plano'])
+        && d.perfil in ['pm', 'geral'] && str(d.nome, 120) && str(d.uf, 2)
+        && optStr(d, 'nomeGuerra', 40) && optStr(d, 'posto', 40) && optStr(d, 'unidade', 60)
+        && (!('lembretes' in d) || (d.lembretes is list && d.lembretes.size() <= 10));
+    }
+    match /users/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSelf(uid) && perfilValido(request.resource.data) && !('plano' in request.resource.data)
+        && request.resource.data.email == request.auth.token.email;
+      allow update: if (isSelf(uid) && perfilValido(request.resource.data)
+          && request.resource.data.get('plano', null) == resource.data.get('plano', null)
+          && request.resource.data.email == resource.data.email)
+        || isAdmin();
+      allow delete: if isSelf(uid);
+
+      // Audiências: privadas, só o dono lê e escreve.
+      match /audiencias/{id} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['titulo', 'data', 'hora', 'papel', 'tipo', 'processo', 'vara', 'modalidade', 'local', 'link', 'obs', 'status', 'atualizadoEm'])
+          && str(request.resource.data.titulo, 120) && str(request.resource.data.data, 10) && str(request.resource.data.hora, 5)
+          && optStr(request.resource.data, 'processo', 30) && optStr(request.resource.data, 'vara', 120)
+          && optStr(request.resource.data, 'local', 200) && optStr(request.resource.data, 'link', 500)
+          && optStr(request.resource.data, 'obs', 1000)
+          && request.resource.data.status in ['agendada', 'realizada', 'adiada', 'cancelada'];
+      }
+    }
+
+    // Pagamentos Pix: o usuário só AVISA (status pendente). Só o administrador aprova.
+    match /pagamentos/{id} {
+      allow read: if (signedIn() && resource.data.uid == request.auth.uid) || isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['txid', 'valor', 'produto', 'uid', 'email', 'status', 'criadoEm'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.status == 'pendente'
+        && request.resource.data.valor is number && request.resource.data.valor > 0 && request.resource.data.valor <= 1000
+        && str(request.resource.data.txid, 25) && request.resource.data.produto == 'premium';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Configuração pública (preço, Pix, anúncios): todos leem, só admin altera.
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Lista de administradores: criada só pelo console do Firebase.
+    match /admins/{uid} {
+      allow read: if isSelf(uid);
+      allow write: if false;
+    }
+  }
+}
