@@ -50,7 +50,7 @@ function render() {
 
 /* ---------- telas ---------- */
 function geral() {
-  const prem = S.users.filter(isPremium).length, pms = S.users.filter((u) => u.perfil === 'pm').length;
+  const prem = S.users.filter(isPremium).length;
   const aprov = S.pag.filter((p) => p.status === 'aprovado');
   const receita = aprov.reduce((s, p) => s + Number(p.valor || 0), 0);
   const mes = new Date().toISOString().slice(0, 7);
@@ -58,7 +58,7 @@ function geral() {
   const tile = (n, t) => `<div class="tile"><b>${n}</b><span>${t}</span></div>`;
   const ok = (c, t) => `<li class="${c ? 'ok' : 'todo'}">${c ? '✅' : '⬜'} ${t}</li>`;
   return `<div class="tiles">
-      ${tile(S.users.length, 'Usuários')}${tile(pms, 'Policiais militares')}${tile(prem, 'Premium ativos')}
+      ${tile(S.users.length, 'Usuários')}${tile(prem, 'Premium ativos')}
       ${tile('R$ ' + receitaMes.toFixed(2).replace('.', ','), 'Receita do mês')}${tile('R$ ' + receita.toFixed(2).replace('.', ','), 'Receita total')}
       ${tile(S.pag.filter((p) => p.status === 'pendente').length, 'Pix aguardando')}
     </div>
@@ -85,8 +85,8 @@ function pagamentos() {
 function usuarios() {
   return `<section class="card"><h2>Usuários</h2>
     <input id="u-busca" type="search" placeholder="Buscar por nome ou e-mail" aria-label="Buscar usuário">
-    <div class="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>UF</th><th>Plano</th><th></th></tr></thead><tbody id="u-rows">
-    ${S.users.map((u) => `<tr data-q="${esc((u.nome + ' ' + u.email).toLowerCase())}"><td>${esc(u.posto || '')} ${esc(u.nome)}</td><td>${esc(u.email)}</td><td>${u.perfil === 'pm' ? '🚔 PM' : '👤'}</td><td>${esc(u.uf)}</td>
+    <div class="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>UF</th><th>Plano</th><th></th></tr></thead><tbody id="u-rows">
+    ${S.users.map((u) => `<tr data-q="${esc((u.nome + ' ' + u.email).toLowerCase())}"><td>${esc(u.nome)}</td><td>${esc(u.email)}</td><td>${esc(u.uf)}</td>
       <td>${isPremium(u) ? '⭐ até ' + esc(new Date(u.plano.ate).toLocaleDateString('pt-BR')) : 'Grátis'}</td>
       <td><button class="btn small" data-prem="${esc(u.id)}">${isPremium(u) ? 'Ajustar' : 'Dar Premium'}</button></td></tr>`).join('')}
     </tbody></table></div><p class="muted small">Dados pessoais: use só para suporte. Nunca exporte ou compartilhe (LGPD).</p></section>`;

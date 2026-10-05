@@ -61,7 +61,7 @@ function renderAuth(r) {
   const p = S.site.premium;
   app.innerHTML = `
   <section class="hero">
-    <div class="hero-badge">🚔 Feito para policiais militares</div>
+    <div class="hero-badge">⚖️ Para quem tem audiência marcada</div>
     <h1>Nunca mais perca uma audiência.</h1>
     <p>Anote suas intimações, receba lembretes no celular e saiba exatamente do que se trata, onde é e a que horas — em segundos.</p>
     <ul class="hero-list">
@@ -90,17 +90,7 @@ function renderAuth(r) {
       <p class="center"><a href="#/entrar">Voltar</a></p>
     </form>` : `
     <form id="f-cad" novalidate>
-      <fieldset class="perfil-pick">
-        <legend>Você é…</legend>
-        <label class="pick"><input type="radio" name="perfil" value="pm" checked><span>🚔 Policial militar</span></label>
-        <label class="pick"><input type="radio" name="perfil" value="geral"><span>👤 Outra pessoa</span></label>
-      </fieldset>
       <label>Nome completo<input name="nome" autocomplete="name" required maxlength="120"></label>
-      <div class="pm-only grid2">
-        <label>Nome de guerra<input name="nomeGuerra" maxlength="40"></label>
-        <label>Posto/graduação<input name="posto" maxlength="40" placeholder="Ex.: Sd, Cb, 3º Sgt"></label>
-        <label>Batalhão / unidade<input name="unidade" maxlength="60" placeholder="Ex.: 12º BPM"></label>
-      </div>
       <label>Estado (UF)<select name="uf">${UFS.map((u) => `<option>${u}</option>`).join('')}</select></label>
       <label>E-mail<input name="email" type="email" autocomplete="email" required></label>
       <label>Senha <small>(mín. 8 caracteres, com letras e números)</small><input name="senha" type="password" autocomplete="new-password" required minlength="8"></label>
@@ -122,15 +112,13 @@ function renderAuth(r) {
     toast('Se houver uma conta com esse e-mail, o link foi enviado.'); busy(fr, false);
   };
   if (fc) {
-    const sync = () => $$('.pm-only', fc).forEach((x) => { x.hidden = fc.perfil.value !== 'pm'; });
-    $$('input[name=perfil]', fc).forEach((r) => { r.onchange = sync; }); sync();
     fc.onsubmit = async (e) => {
       e.preventDefault(); const d = Object.fromEntries(new FormData(fc));
       if (!d.nome.trim()) return toast('Informe seu nome.', 'err');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) return toast('E-mail inválido.', 'err');
       if (d.senha.length < 8 || !/[A-Za-z]/.test(d.senha) || !/\d/.test(d.senha)) return toast('Senha fraca: mín. 8 caracteres, com letras e números.', 'err');
       if (!d.aceite) return toast('É preciso aceitar os termos.', 'err');
-      const perfil = { perfil: d.perfil, nome: d.nome.trim(), uf: d.uf, nomeGuerra: (d.nomeGuerra || '').trim(), posto: (d.posto || '').trim(), unidade: (d.unidade || '').trim(), lembretes: LEMBRETES_PADRAO, aceiteEm: new Date().toISOString() };
+      const perfil = { nome: d.nome.trim(), uf: d.uf, lembretes: LEMBRETES_PADRAO, aceiteEm: new Date().toISOString() };
       busy(fc, true);
       try { await S.store.signUp(d.email, d.senha, perfil); location.hash = '#/'; toast('Conta criada! Confira seu e-mail para confirmar.'); }
       catch (er) { toast(authMessage(er), 'err'); } finally { busy(fc, false); }
@@ -157,7 +145,7 @@ function audCard(a) {
 /* ================= telas ================= */
 function vInicio() {
   const f = futuras(), prox = f[0], p = S.perfil;
-  const saud = p.perfil === 'pm' && (p.posto || p.nomeGuerra) ? `${esc(p.posto || '')} ${esc(p.nomeGuerra || p.nome.split(' ')[0])}` : esc((p.nome || '').split(' ')[0]);
+  const saud = esc((p.nome || '').split(' ')[0]);
   const notif = ('Notification' in window) && Notification.permission !== 'granted';
   return `
   ${adHtml(S.site, 'topo', premium())}
@@ -207,7 +195,7 @@ function vForm(id) {
       <p>Você já tem ${futuras().length} audiências agendadas. O plano grátis permite ${esc(S.site.premium.limiteGratis)}.</p>
       <a class="btn primary" href="#/premium">⭐ Liberar ilimitado por R$ ${esc(S.site.premium.preco)}</a></section>`;
   }
-  const v = a || { status: 'agendada', modalidade: 'presencial', papel: S.perfil.perfil === 'pm' ? 'Testemunha' : '', tipo: S.perfil.perfil === 'pm' ? 'Criminal' : '' };
+  const v = a || { status: 'agendada', modalidade: 'presencial', papel: '', tipo: '' };
   const opt = (arr, cur) => arr.map((o) => `<option ${o === cur ? 'selected' : ''}>${esc(o)}</option>`).join('');
   return `
   <h1>${a ? 'Editar audiência' : 'Nova audiência'}</h1>
@@ -271,7 +259,7 @@ function vVer(id) {
 
 function vBuscar() {
   const p = S.perfil;
-  const nomes = [p.nome, p.nomeGuerra && p.nomeGuerra !== p.nome ? p.nomeGuerra : ''].filter(Boolean);
+  const nomes = [p.nome].filter(Boolean);
   const links = (n) => `
     <a class="btn small" href="https://comunica.pje.jus.br/consulta?nomeParte=${encodeURIComponent(n)}" target="_blank" rel="noopener">Comunicações processuais (CNJ)</a>
     <a class="btn small" href="https://queridodiario.ok.org.br/pesquisa?term=${encodeURIComponent('"' + n + '"')}" target="_blank" rel="noopener">Querido Diário (diários municipais)</a>
@@ -367,9 +355,6 @@ function vConta() {
   <h1>Minha conta</h1>
   <form id="f-perfil" class="card">
     <label>Nome completo<input name="nome" maxlength="120" value="${esc(p.nome)}" required></label>
-    ${p.perfil === 'pm' ? `<div class="grid2"><label>Nome de guerra<input name="nomeGuerra" maxlength="40" value="${esc(p.nomeGuerra)}"></label>
-      <label>Posto/graduação<input name="posto" maxlength="40" value="${esc(p.posto)}"></label></div>
-      <label>Batalhão / unidade<input name="unidade" maxlength="60" value="${esc(p.unidade)}"></label>` : ''}
     <label>UF<select name="uf">${UFS.map((u) => `<option ${u === p.uf ? 'selected' : ''}>${u}</option>`).join('')}</select></label>
     <fieldset><legend>Lembretes ${premium() ? '' : '<small>(personalizar é Premium ⭐)</small>'}</legend>
       <div class="chips">${LEMBRETE_OPCOES.map(([m, t]) => `<label class="chip"><input type="checkbox" name="lem" value="${m}" ${lem.includes(m) ? 'checked' : ''} ${premium() ? '' : 'disabled'}><span>${t} antes</span></label>`).join('')}</div>
@@ -425,7 +410,7 @@ function bind(r) {
     e.preventDefault();
     const d = Object.fromEntries(new FormData(fp));
     const lem = premium() ? $$('input[name=lem]:checked', fp).map((x) => Number(x.value)) : (S.perfil.lembretes || LEMBRETES_PADRAO);
-    await S.store.saveProfile({ ...S.perfil, nome: d.nome.trim(), nomeGuerra: (d.nomeGuerra || '').trim(), posto: (d.posto || '').trim(), unidade: (d.unidade || '').trim(), uf: d.uf, lembretes: lem.length ? lem : LEMBRETES_PADRAO });
+    await S.store.saveProfile({ ...S.perfil, nome: d.nome.trim(), uf: d.uf, lembretes: lem.length ? lem : LEMBRETES_PADRAO });
     await reload(); toast('Dados salvos ✅');
   };
 

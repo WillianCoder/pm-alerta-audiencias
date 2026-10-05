@@ -1,6 +1,6 @@
 # 🚔 PM Alerta — Anotador de Audiências
 
-> Nunca mais perca uma audiência. Lembretes no celular, "do que se trata" em segundos e busca do seu nome em fontes públicas — feito especialmente para **policiais militares**, aberto para qualquer pessoa.
+> Nunca mais perca uma audiência. Lembretes no celular, "do que se trata" em segundos e busca do seu nome em fontes públicas — para qualquer pessoa.
 
 **Status:** 🟡 Em desenvolvimento · v0.1.0 (MVP pronto para configurar e publicar)
 
@@ -13,10 +13,10 @@
 | Google Agenda e .ics por audiência | Exportar todas para a agenda do celular com alarmes |
 | Com anúncios | Sem anúncios |
 
-Também tem: cadastro por **e-mail e senha** (com confirmação de e-mail e recuperação de senha), perfil de PM (nome de guerra, posto, unidade), validação do nº de processo no padrão CNJ, histórico (realizada/adiada/cancelada), **doações por Pix**, modo escuro automático, funciona offline e instala como app (PWA) no **iPhone e Android**.
+Também tem: cadastro por **e-mail e senha** (com confirmação de e-mail e recuperação de senha), validação do nº de processo no padrão CNJ, histórico (realizada/adiada/cancelada), **doações por Pix**, modo escuro automático, funciona offline e instala como app (PWA) no **iPhone e Android**.
 
 ## 🛠️ Painel administrativo (`admin.html`)
-- 📊 **Visão geral:** usuários, PMs, Premium ativos, receita do mês e total, checklist para lucrar.
+- 📊 **Visão geral:** usuários, Premium ativos, receita do mês e total, checklist para lucrar.
 - 💰 **Pagamentos:** cada pedido tem um código (ex.: `PMA3K9…`) que vai dentro do Pix. Confira no extrato e clique **Aprovar** → Premium liberado na hora.
 - 👥 **Usuários:** busca, dar/ajustar/remover Premium manualmente.
 - ⭐ **Preço e Pix:** preço, dias de acesso, limite do grátis, benefícios, chave Pix, valores de doação, WhatsApp/e-mail.
@@ -55,7 +55,7 @@ Sem Firebase configurado o app roda em **modo demonstração** (dados só no nav
 ## 💸 Como o app gera renda
 1. **Premium R$ 10/ano via Pix** — sem taxa de intermediário.
 2. **Google AdSense** — renda automática pelos acessos do plano grátis.
-3. **Anúncios próprios** — venda espaço direto (advogados militares, cursos, lojas de equipamento) e receba por Pix.
+3. **Anúncios próprios** — venda espaço direto (advogados, cursos, lojas de equipamento) e receba por Pix.
 4. **Doações** — página "Apoie" com QR Code Pix.
 
 ## 🗺️ Próximos passos

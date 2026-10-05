@@ -1,7 +1,7 @@
 {
   "name": "PM Alerta — Anotador de Audiências",
   "short_name": "PM Alerta",
-  "description": "Lembretes de audiências para policiais militares e qualquer pessoa.",
+  "description": "Lembretes de audiências judiciais.",
   "lang": "pt-BR",
   "start_url": "./#/",
   "scope": "./",

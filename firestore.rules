@@ -12,9 +12,8 @@ service cloud.firestore {
 
     // Perfil: o próprio usuário edita seus dados, mas NUNCA o campo "plano" (Premium).
     function perfilValido(d) {
-      return d.keys().hasOnly(['perfil', 'nome', 'uf', 'nomeGuerra', 'posto', 'unidade', 'lembretes', 'aceiteEm', 'email', 'criadoEm', 'plano'])
-        && d.perfil in ['pm', 'geral'] && str(d.nome, 120) && str(d.uf, 2)
-        && optStr(d, 'nomeGuerra', 40) && optStr(d, 'posto', 40) && optStr(d, 'unidade', 60)
+      return d.keys().hasOnly(['nome', 'uf', 'lembretes', 'aceiteEm', 'email', 'criadoEm', 'plano'])
+        && str(d.nome, 120) && str(d.uf, 2)
         && (!('lembretes' in d) || (d.lembretes is list && d.lembretes.size() <= 10));
     }
     match /users/{uid} {
