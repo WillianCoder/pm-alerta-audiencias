@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Alerta Audiência — Apresentação</title>
+<!-- Fonte do PDF docs/Apresentacao-Alerta-Audiencia.pdf. Gerar: node scripts/gerar-pdf.cjs -->
+<style>
+  @page { size: A4; margin: 0; }
+  :root { --navy: #0b1f3a; --navy2: #13325c; --gold: #c9a227; --gold2: #e5c55a; --ink: #14213d; --muted: #5b6577; --line: #dde3ec; --bg: #f5f2ea;
+          --c1: #1f5fa8; --c2: #1f8a4c; --c3: #b8860b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 10.5pt/1.45 "DejaVu Sans", system-ui, sans-serif; color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; padding: 15mm 15mm 12mm; position: relative; overflow: hidden; page-break-after: always; background: var(--bg); }
+  .page:last-child { page-break-after: auto; }
+  .foot { position: absolute; left: 15mm; right: 15mm; bottom: 7mm; display: flex; justify-content: space-between; font-size: 8pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 2mm; }
+  .tag { display: inline-block; font-size: 7.5pt; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; padding: 1.2mm 3mm; border-radius: 2mm; color: #fff; }
+  .p1 .tag { background: var(--c1); } .p2 .tag { background: var(--c2); } .p3 .tag { background: var(--c3); }
+  .p1 { border-top: 4mm solid var(--c1); } .p2 { border-top: 4mm solid var(--c2); } .p3 { border-top: 4mm solid var(--c3); }
+  h1 { font-size: 22pt; line-height: 1.1; margin: 3mm 0 1mm; letter-spacing: -.01em; text-transform: uppercase; }
+  .sub { color: var(--muted); margin: 0 0 6mm; font-size: 11pt; }
+  h2 { font-size: 12.5pt; margin: 5mm 0 2mm; } h3 { font-size: 10.5pt; margin: 0 0 1mm; text-transform: uppercase; letter-spacing: .03em; }
+  p { margin: 0 0 2mm; } ul { margin: 0; padding-left: 5mm; } li { margin: .8mm 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; } .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; } .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 3mm; padding: 4mm; }
+  .card.ic { display: flex; gap: 3mm; } .card.ic .i { font-size: 18pt; line-height: 1; }
+  .card p { color: var(--muted); font-size: 9.5pt; margin: 0; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--navy); color: #fff; border-radius: 3mm; margin: 5mm 0; }
+  .stats div { padding: 4mm; text-align: center; border-right: 1px solid rgba(255,255,255,.12); } .stats div:last-child { border: 0; }
+  .stats b { display: block; font-size: 17pt; color: var(--gold2); } .stats span { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .08em; }
+  .phone { border: 2.2mm solid #0d1626; border-radius: 6mm; overflow: hidden; background: #fff; box-shadow: 0 2mm 5mm rgba(0,0,0,.18); }
+  .phone img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; }
+  .shots .phone { height: 80mm; } .shots figcaption { font-size: 8.5pt; text-align: center; margin-top: 2mm; color: var(--muted); }
+  .shots figcaption b { display: block; color: var(--ink); font-size: 9pt; text-transform: uppercase; }
+  figure { margin: 0; }
+  .num { display: inline-grid; place-items: center; width: 7mm; height: 7mm; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 800; font-size: 9pt; margin-right: 1mm; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 3mm; overflow: hidden; font-size: 9.5pt; }
+  th { background: var(--navy); color: #fff; text-align: left; padding: 2.4mm 3mm; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .05em; }
+  td { padding: 2.2mm 3mm; border-bottom: 1px solid var(--line); vertical-align: top; } tr:last-child td { border-bottom: 0; }
+  .note { background: #fff; border-left: 2mm solid var(--gold); padding: 3mm 4mm; border-radius: 2mm; font-size: 9.5pt; margin-top: 4mm; }
+  .p2 .note { border-left-color: var(--c2); } .p1 .note { border-left-color: var(--c1); }
+  .ok { color: var(--c2); font-weight: 800; } .muted { color: var(--muted); } .small { font-size: 8.5pt; }
+  .divider { display: grid; place-items: center; text-align: center; background: var(--navy); color: #fff; }
+  /* capa */
+  .cover { background: radial-gradient(120% 80% at 80% 10%, #1a3a66 0%, var(--navy) 55%, #071427 100%); color: #fff; padding: 18mm 16mm; }
+  .brand { display: flex; align-items: center; gap: 3mm; font-weight: 800; font-size: 14pt; }
+  .cover h1 { font-size: 34pt; margin: 14mm 0 4mm; color: #fff; } .cover h1 em { color: var(--gold2); font-style: normal; }
+  .cover .lead { font-size: 12.5pt; color: #cfd8e6; max-width: 120mm; }
+  .cover .phones { display: flex; gap: 6mm; margin: 10mm 0 0; justify-content: center; }
+  .cover .phones .phone { width: 52mm; height: 110mm; } .cover .phones .phone.mid { transform: translateY(-6mm); border-color: var(--gold); }
+  .qrs { position: absolute; left: 16mm; right: 16mm; bottom: 14mm; display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .qr { display: flex; gap: 4mm; align-items: center; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.18); border-radius: 3mm; padding: 3.5mm; }
+  .qr .code { width: 26mm; height: 26mm; background: #fff; border-radius: 2mm; padding: 1.5mm; } .qr .code svg { width: 100%; height: 100%; display: block; }
+  .qr small { display: block; color: #9fb0c8; font-size: 8pt; } .qr b { display: block; font-size: 13pt; color: var(--gold2); text-transform: uppercase; } .qr span { font-size: 8pt; color: #cfd8e6; word-break: break-all; }
+  .index { margin-top: 8mm; display: grid; gap: 2.5mm; max-width: 120mm; }
+  .index div { font-size: 10pt; color: #dfe6f1; } .index .dot { display: inline-block; vertical-align: -.5mm; margin-right: 2mm; }
+  .dot { width: 4mm; height: 4mm; border-radius: 1mm; }
+  .side { display: grid; grid-template-columns: 62mm 1fr; gap: 6mm; align-items: start; } .side .phone { height: 128mm; }
+  .check li { list-style: none; position: relative; padding-left: 5mm; } .check { padding-left: 0; } .check li::before { content: "✓"; position: absolute; left: 0; color: var(--c2); font-weight: 900; }
+  .todo li { list-style: none; position: relative; padding-left: 5mm; } .todo { padding-left: 0; } .todo li::before { content: "☐"; position: absolute; left: 0; color: var(--c3); }
+</style>
+</head>
+<body>
+
+<!-- ============ CAPA ============ -->
+<section class="page cover">
+  <div class="brand"><img src="../assets/img/icon.svg" width="40" height="40" alt=""> Alerta Audiência</div>
+  <h1>Nunca mais perca<br>uma <em>audiência.</em></h1>
+  <p class="lead">Cole a intimação, receba lembretes no celular e saiba do que se trata, onde é, a que horas e o que levar. Para qualquer pessoa — grátis para começar.</p>
+  <div class="index">
+    <div><span class="dot" style="background:var(--c1)"></span><b>Parte 1 · Para os clientes</b> — o que o app faz e como usar</div>
+    <div><span class="dot" style="background:var(--c2)"></span><b>Parte 2 · Para anunciantes</b> — espaços e pacotes de anúncio</div>
+    <div><span class="dot" style="background:var(--c3)"></span><b>Parte 3 · Para o dono</b> — painel, dinheiro, onde vender e próximos passos</div>
+  </div>
+  <div class="phones">
+    <div class="phone"><img src="telas/03-colar-intimacao.jpg" alt=""></div>
+    <div class="phone mid"><img src="telas/06-inicio.jpg" alt=""></div>
+    <div class="phone"><img src="telas/05-detalhe.jpg" alt=""></div>
+  </div>
+  <div class="qrs">
+    <div class="qr"><div class="code" data-qr="https://williancoder.github.io/pm-alerta-audiencias/"></div><div><small>Aponte a câmera ou acesse</small><b>O app</b><span>williancoder.github.io/pm-alerta-audiencias</span></div></div>
+    <div class="qr"><div class="code" data-qr="https://williancoder.github.io/pm-alerta-audiencias/#/anuncie"></div><div><small>Para empresas e profissionais</small><b>Anuncie</b><span>williancoder.github.io/pm-alerta-audiencias/#/anuncie</span></div></div>
+  </div>
+</section>
+
+<!-- ============ PARTE 1 · CLIENTES ============ -->
+<section class="page p1">
+  <span class="tag">Parte 1 · Para os clientes</span>
+  <h1>O que o app faz</h1>
+  <p class="sub">Tudo o que você precisa para chegar na audiência na hora certa, no lugar certo e preparado.</p>
+  <div class="grid2">
+    <div class="card ic"><span class="i">📋</span><div><h3>Cole a intimação</h3><p>Copie a mensagem, e-mail ou carta e cole no app. Data, hora, processo, vara, link da sala e tipo de audiência são preenchidos sozinhos.</p></div></div>
+    <div class="card ic"><span class="i">⏰</span><div><h3>Lembretes no celular</h3><p>Aviso 7 dias, 1 dia e 2 horas antes. Um toque coloca o alarme no calendário do celular, que toca mesmo sem internet.</p></div></div>
+    <div class="card ic"><span class="i">💡</span><div><h3>Saiba do que se trata</h3><p>Conciliação, instrução, trabalhista, testemunha, júri, perícia: cada tipo explicado em linguagem simples.</p></div></div>
+    <div class="card ic"><span class="i">✅</span><div><h3>O que levar</h3><p>Uma lista para marcar, feita para o seu caso: documentos, provas, roupa, horário e dicas para audiência virtual.</p></div></div>
+    <div class="card ic"><span class="i">📍</span><div><h3>Como chegar</h3><p>Google Maps e Waze com um toque, ou o botão para entrar direto na sala virtual.</p></div></div>
+    <div class="card ic"><span class="i">🔎</span><div><h3>Busque seu nome</h3><p>Consulta comunicações oficiais da Justiça (CNJ) e diários oficiais. Achou algo? Cadastra a audiência com um toque.</p></div></div>
+  </div>
+  <div class="stats"><div><b>R$ 0</b><span>para começar</span></div><div><b>1 min</b><span>para cadastrar</span></div><div><b>8</b><span>artigos no guia</span></div><div><b>📱</b><span>iPhone, Android e PC</span></div></div>
+  <div class="shots">
+    <figure><div class="phone"><img src="telas/03-colar-intimacao.jpg" alt=""></div><figcaption><b>1. Cole</b>o texto da intimação</figcaption></figure>
+    <figure><div class="phone"><img src="telas/05-detalhe.jpg" alt=""></div><figcaption><b>2. Confira</b>tudo organizado</figcaption></figure>
+    <figure><div class="phone"><img src="telas/06-inicio.jpg" alt=""></div><figcaption><b>3. Acompanhe</b>a contagem regressiva</figcaption></figure>
+    <figure><div class="phone"><img src="telas/08-busca.jpg" alt=""></div><figcaption><b>4. Busque</b>seu nome em processos</figcaption></figure>
+  </div>
+  <div class="foot"><span>Alerta Audiência · Apresentação</span><span>2</span></div>
+</section>
+
+<section class="page p1">
+  <span class="tag">Parte 1 · Para os clientes</span>
+  <h1>Grátis ou Premium</h1>
+  <p class="sub">Comece grátis. Se precisar de mais, o Premium custa R$ 10 por um ano inteiro — pagamento único por Pix.</p>
+  <table>
+    <tr><th></th><th>Grátis</th><th>⭐ Premium · R$ 10/ano</th></tr>
+    <tr><td>Audiências agendadas</td><td>até 3</td><td class="ok">ilimitadas</td></tr>
+    <tr><td>Colar intimação, explicação e lista do que levar</td><td class="ok">✓</td><td class="ok">✓</td></tr>
+    <tr><td>Lembretes</td><td>7 dias, 1 dia e 2 h antes</td><td class="ok">personalizados (14 dias a 30 min)</td></tr>
+    <tr><td>Busca do seu nome em fontes oficiais</td><td>2 por mês</td><td class="ok">5 por dia (até 60 por mês)</td></tr>
+    <tr><td>Agenda do celular</td><td>uma audiência por vez</td><td class="ok">todas de uma vez, com alarmes</td></tr>
+    <tr><td>Anúncios</td><td>com anúncios</td><td class="ok">sem anúncios</td></tr>
+  </table>
+  <div class="grid2" style="margin-top:5mm">
+    <div class="card"><h3>💳 Como pagar o Premium</h3><p><span class="num">1</span>Toque em <b>Pagar com Pix</b>.<br><span class="num">2</span>Pague pelo app do banco (QR Code ou copia e cola).<br><span class="num">3</span>Toque em <b>Já paguei</b>. Conferimos e liberamos, normalmente em poucas horas.</p></div>
+    <div class="card"><h3>🔒 Seus dados protegidos</h3><p>Só você vê suas audiências. Conexão criptografada, sem perfis públicos, e você pode baixar ou excluir tudo quando quiser (LGPD). Não vendemos dados.</p></div>
+    <div class="card"><h3>⚖️ Por que existe limite de busca?</h3><p>A busca consulta serviços públicos da Justiça. O limite é justo, mantém o app rápido para todos e evita abuso. A busca é sempre pelo seu próprio nome: uma conta por pessoa.</p></div>
+    <div class="card"><h3>📲 Instale no celular</h3><p><b>iPhone:</b> Safari → Compartilhar → Adicionar à Tela de Início.<br><b>Android:</b> Chrome → Instalar app. Abre como aplicativo, mais rápido e até sem internet.</p></div>
+  </div>
+  <div class="note"><b>Importante:</b> o Alerta Audiência é um organizador pessoal, não um órgão da Justiça. Confira sempre a intimação oficial. Para orientação sobre o seu caso, procure um advogado ou a Defensoria Pública (gratuita para quem não pode pagar).</div>
+  <div class="foot"><span>Alerta Audiência · Apresentação</span><span>3</span></div>
+</section>
+
+<!-- ============ PARTE 2 · ANUNCIANTES ============ -->
+<section class="page p2">
+  <span class="tag">Parte 2 · Para anunciantes</span>
+  <h1>Anuncie para quem tem audiência marcada</h1>
+  <p class="sub">Seu anúncio aparece para pessoas que estão, agora, resolvendo uma questão na Justiça: acordos, causas trabalhistas, família, consumidor, INSS.</p>
+  <div class="side">
+    <div class="phone"><img src="telas/13-inicio-anuncio.jpg" alt=""></div>
+    <div>
+      <h2 style="margin-top:0">Ideal para</h2>
+      <ul class="check"><li>Advogados e escritórios (com respeito ao Código de Ética da OAB)</li><li>Correspondentes jurídicos e peritos</li><li>Contadores, despachantes e tradutores</li><li>Cursos, faculdades e concursos</li></ul>
+      <h2>Onde o anúncio aparece</h2>
+      <table><tr><th>Espaço</th><th>Por que funciona</th></tr>
+        <tr><td>Abaixo da próxima audiência</td><td>A área mais vista do app</td></tr>
+        <tr><td>Tela de busca do nome</td><td>Quem acabou de achar um processo</td></tr>
+        <tr><td>Artigos do Guia</td><td>Quem chega pelo Google com dúvida</td></tr>
+        <tr><td>Topo, lista e rodapé</td><td>Presença constante</td></tr></table>
+      <div class="note">Anúncios sempre identificados como <b>"Patrocinado"</b>. Não aceitamos promessa de resultado em processo nem anúncio enganoso.</div>
+    </div>
+  </div>
+  <h2>Pacotes</h2>
+  <div class="grid4">
+    <div class="card"><h3>Destaque</h3><b style="font-size:13pt;color:var(--c2)">R$ 49</b><span class="muted small"> /semana</span><p>Abaixo da próxima audiência.</p></div>
+    <div class="card"><h3>Busca</h3><b style="font-size:13pt;color:var(--c2)">R$ 79</b><span class="muted small"> /mês</span><p>Patrocinador da busca do nome.</p></div>
+    <div class="card"><h3>Rodapé</h3><b style="font-size:13pt;color:var(--c2)">R$ 99</b><span class="muted small"> /mês</span><p>Todas as telas e artigos.</p></div>
+    <div class="card" style="border:2px solid var(--c2)"><h3>Completo</h3><b style="font-size:13pt;color:var(--c2)">R$ 199</b><span class="muted small"> /mês</span><p>Todos os espaços.</p></div>
+  </div>
+  <p class="small muted" style="margin-top:3mm"><b>Como contratar:</b> fale pelo WhatsApp da página <b>Anuncie aqui</b>, envie título, texto, imagem e link, pague por Pix e o anúncio entra no ar no mesmo dia. Cada clique chega ao seu site marcado (utm_source=alerta-audiencia), para você medir o retorno no seu Google Analytics. Valores de referência, ajustáveis.</p>
+  <div class="foot"><span>Alerta Audiência · Apresentação</span><span>4</span></div>
+</section>
+
+<!-- ============ PARTE 3 · DONO ============ -->
+<section class="page p3">
+  <span class="tag">Parte 3 · Para o dono</span>
+  <h1>O painel administrativo</h1>
+  <p class="sub">Endereço: <b>williancoder.github.io/pm-alerta-audiencias/admin.html</b> · funciona no celular e no computador.</p>
+  <div class="shots" style="grid-template-columns:repeat(3,1fr)">
+    <figure><div class="phone" style="height:100mm"><img src="telas/10-admin.jpg" alt=""></div><figcaption><b>Visão geral</b>usuários, receita e checklist</figcaption></figure>
+    <figure><div class="phone" style="height:100mm"><img src="telas/11-admin-planos.jpg" alt=""></div><figcaption><b>Planos, limites e Pix</b>preço, limites, chave Pix</figcaption></figure>
+    <figure><div class="phone" style="height:100mm"><img src="telas/12-admin-anuncios.jpg" alt=""></div><figcaption><b>Anúncios</b>posições, patrocinadores e pacotes</figcaption></figure>
+  </div>
+  <table style="margin-top:5mm">
+    <tr><th>Aba</th><th>O que você faz</th></tr>
+    <tr><td>📊 Visão geral</td><td>Usuários, Premium ativos, receita do mês e total, anúncios no ar e aviso de anúncio vencendo (hora de oferecer renovação).</td></tr>
+    <tr><td>💰 Pagamentos</td><td>Cada Pix tem um código (ex.: PMA3K9…). Conferiu no extrato? <b>Aprovar</b> → Premium liberado na hora.</td></tr>
+    <tr><td>👥 Usuários</td><td>Buscar pessoas, dar, ajustar ou tirar Premium (cortesias e suporte).</td></tr>
+    <tr><td>⭐ Planos, limites e Pix</td><td>Preço, dias de acesso, limite do grátis, benefícios, <b>limites de busca</b>, chave Pix, doações e contato.</td></tr>
+    <tr><td>📢 Anúncios</td><td>Para cada espaço: desligado, Google AdSense ou anúncio próprio. Patrocinador com data de validade, botão +30 dias e pacotes da página Anuncie.</td></tr>
+    <tr><td>📣 Aviso geral</td><td>Recado no topo do app para todos (novidade, manutenção).</td></tr>
+  </table>
+  <div class="note"><b>Segurança:</b> o painel não tem senha no código. Só entra quem você marcar como administrador no Firebase, e as regras do servidor recusam qualquer alteração de quem não é admin — mesmo que alguém mexa no navegador.</div>
+  <div class="foot"><span>Alerta Audiência · Apresentação</span><span>5</span></div>
+</section>
+
+<section class="page p3">
+  <span class="tag">Parte 3 · Para o dono</span>
+  <h1>Como o app gera dinheiro</h1>
+  <p class="sub">Quatro fontes de renda, todas já prontas no app. Você recebe por Pix, sem taxa de intermediário.</p>
+  <div class="grid2">
+    <div class="card ic"><span class="i">⭐</span><div><h3>Premium · R$ 10/ano</h3><p>Pagamento único por Pix. Quem tem mais de 3 audiências ou quer buscar o nome com frequência assina.</p></div></div>
+    <div class="card ic"><span class="i">📢</span><div><h3>Anúncios próprios</h3><p>Pacotes de R$ 49/semana a R$ 199/mês para advogados, cursos e serviços. Você cobra direto.</p></div></div>
+    <div class="card ic"><span class="i">🤖</span><div><h3>Google AdSense</h3><p>Renda automática por visualizações e cliques no plano grátis e no Guia. Exige domínio próprio e aprovação do Google.</p></div></div>
+    <div class="card ic"><span class="i">💙</span><div><h3>Doações</h3><p>Página "Apoie" com QR Code Pix e valores sugeridos.</p></div></div>
+  </div>
+  <h2>Exemplo de conta (simulação, não é promessa)</h2>
+  <table>
+    <tr><th>Cenário em um mês</th><th>Conta</th><th>Receita</th></tr>
+    <tr><td>Começo: 30 assinaturas Premium</td><td>30 × R$ 10</td><td>R$ 300</td></tr>
+    <tr><td>+ 1 anunciante no pacote Busca</td><td>1 × R$ 79</td><td>R$ 79</td></tr>
+    <tr><td>Crescendo: 150 Premium + 2 pacotes completos</td><td>150 × R$ 10 + 2 × R$ 199</td><td><b>R$ 1.898</b></td></tr>
+  </table>
+  <p class="small muted" style="margin-top:2mm">O Premium é anual: cada pessoa paga uma vez por ano. O valor do AdSense varia muito com o tráfego e não entra na conta.</p>
+  <h2>Limites que eu defini (justos e protegidos no servidor)</h2>
+  <table>
+    <tr><th>O quê</th><th>Grátis</th><th>Premium</th><th>Por quê</th></tr>
+    <tr><td>Audiências agendadas</td><td>3</td><td>ilimitadas</td><td>Uso pessoal cabe no grátis; mais que isso é motivo para assinar.</td></tr>
+    <tr><td>Buscas do nome</td><td>2/mês</td><td>5/dia · 60/mês</td><td>Provar o recurso grátis; Premium vigia todo dia sem abusar das fontes públicas.</td></tr>
+    <tr><td>Avisos "Já paguei"</td><td>3/dia</td><td>3/dia</td><td>Evita spam na sua lista de pagamentos.</td></tr>
+  </table>
+  <p class="small muted" style="margin-top:2mm">Os limites de busca podem ser mudados no painel. A busca é sempre pelo nome da própria conta, o que reforça "uma conta por pessoa".</p>
+  <div class="foot"><span>Alerta Audiência · Apresentação</span><span>6</span></div>
+</section>
+
+<section class="page p3">
+  <span class="tag">Parte 3 · Para o dono</span>
+  <h1>Onde divulgar e vender</h1>
+  <p class="sub">Para conseguir clientes Premium, anunciantes — e, se um dia quiser, vender o próprio site.</p>
+  <div class="grid2">
+    <div class="card"><h3>📣 Para conseguir usuários</h3><ul>
+      <li><b>Instagram, TikTok e Kwai:</b> vídeos curtos — "o que acontece se faltar à audiência", "o que levar".</li>
+      <li><b>Grupos de WhatsApp e Facebook</b> de bairro, cidade, trabalhadores e concurseiros.</li>
+      <li><b>Google:</b> os 8 artigos do Guia atraem quem pesquisa dúvidas sobre audiência.</li>
+      <li><b>Sindicatos e associações</b> (servidores, policiais, trabalhadores): ofereça Premium com desconto para os associados.</li></ul></div>
+    <div class="card"><h3>🤝 Para conseguir anunciantes</h3><ul>
+      <li>Escritórios de advocacia trabalhista, de família e do consumidor da sua cidade.</li>
+      <li>Correspondentes jurídicos, contadores, cursinhos.</li>
+      <li>Leve este PDF (Parte 2) e o link <b>#/anuncie</b>. Comece com 1 semana a R$ 49 para o anunciante testar.</li></ul></div>
+    <div class="card"><h3>🛒 Vender o Premium com afiliados</h3><p style="margin-bottom:1mm">Plataformas brasileiras que vendem assinaturas e têm rede de afiliados (que divulgam por comissão):</p><ul>
+      <li><b>Hotmart</b> — maior rede de afiliados do Brasil (taxa ≈ 9,99% + R$ 1).</li>
+      <li><b>Kiwify</b> — Pix, cartão e boleto (taxa ≈ 8,99% + R$ 2,49).</li></ul><p style="margin-top:1mm">Hoje o app recebe por Pix direto (sem taxa). Afiliados são um próximo passo, se quiser escalar.</p></div>
+    <div class="card"><h3>🏷️ Vender o site inteiro</h3><ul>
+      <li><b>Flippa</b> — marketplace aberto de sites e apps.</li>
+      <li><b>Acquire.com</b> — focado em SaaS, com compradores verificados.</li>
+      <li>Também: Empire Flippers e Side Projectors (projetos menores).</li></ul><p style="margin-top:1mm">Compradores pagam por <b>receita comprovada</b>: primeiro gere assinantes e anúncios por alguns meses.</p></div>
+  </div>
+  <div class="note"><b>Outra ideia de venda (B2B):</b> uma versão com a marca de um escritório de advocacia para ele dar aos próprios clientes — menos faltas em audiência para o escritório, mensalidade para você.</div>
+  <p class="small muted" style="margin-top:3mm">Taxas e regras das plataformas consultadas em outubro de 2026; confirme no site de cada uma antes de contratar.</p>
+  <div class="foot"><span>Alerta Audiência · Apresentação</span><span>7</span></div>
+</section>
+
+<section class="page p3">
+  <span class="tag">Parte 3 · Para o dono</span>
+  <h1>O que mudou nesta versão</h1>
+  <p class="sub">Versão 0.2 — app para o público geral, mais fácil, protegido e pronto para gerar renda.</p>
+  <div class="grid2">
+    <div class="card"><h3>✨ Para quem usa</h3><ul class="check">
+      <li>Colar a intimação e preencher sozinho</li><li>Tipos de audiência explicados em linguagem simples</li><li>Lista do que levar, marcável</li><li>Busca do nome também no plano grátis (2/mês)</li><li>"Outro nome" para a busca (de solteira, social)</li><li>Página de Ajuda e botão Instalar app</li><li>Guia com 8 artigos</li></ul></div>
+    <div class="card"><h3>💰 Para você ganhar</h3><ul class="check">
+      <li>Página "Anuncie aqui" com pacotes editáveis</li><li>Anúncio com data de validade e renovação +30 dias</li><li>Novos espaços: busca e artigos</li><li>Cliques rastreáveis (UTM) para o anunciante</li><li>Páginas Sobre e Contato e sitemap (AdSense e Google)</li></ul></div>
+    <div class="card"><h3>🔒 Segurança e limites</h3><ul class="check">
+      <li>Limites de busca e de pagamento conferidos no servidor</li><li>41 testes das regras de segurança no emulador oficial do Firebase</li><li>Ninguém se dá Premium nem vira admin pelo navegador</li></ul></div>
+    <div class="card"><h3>⚡ Correções e desempenho</h3><ul class="check">
+      <li><b>Corrigido:</b> o arquivo de configuração não era carregado — o app ficaria sempre em demonstração</li><li>QR Code carregado só na hora de pagar (abertura mais leve)</li><li>Testado de ponta a ponta no iPhone simulado e com o Firebase real (emulador)</li></ul></div>
+  </div>
+  <h2>Custos para manter</h2>
+  <table><tr><th>Item</th><th>Custo</th></tr>
+    <tr><td>Hospedagem (GitHub Pages) e Firebase no plano gratuito</td><td><b>R$ 0</b></td></tr>
+    <tr><td>Domínio .com.br no Registro.br (necessário para o AdSense)</td><td>≈ R$ 40 por ano</td></tr>
+    <tr><td>Pix (recebimento direto na sua conta)</td><td>sem taxa na maioria dos bancos para pessoa física</td></tr></table>
+  <div class="foot"><span>Alerta Audiência · Apresentação</span><span>8</span></div>
+</section>
+
+<section class="page p3">
+  <span class="tag">Parte 3 · Para o dono</span>
+  <h1>Próximos passos</h1>
+  <p class="sub">O app está pronto. Faltam só as contas que precisam ser suas.</p>
+  <div class="grid3">
+    <div class="card"><h3>Antes de divulgar</h3><ul class="todo">
+      <li>Criar o projeto no Firebase e colar a configuração (passo a passo no README)</li><li>Publicar as regras de segurança</li><li>Marcar sua conta como administradora</li><li>Cadastrar chave Pix, WhatsApp e e-mail no painel</li></ul></div>
+    <div class="card"><h3>Para lucrar mais</h3><ul class="todo">
+      <li>Comprar o domínio (ex.: alertaaudiencia.com.br)</li><li>Pedir aprovação no Google AdSense</li><li>Visitar 5 escritórios com a Parte 2 deste PDF</li><li>Postar 3 vídeos curtos por semana</li></ul></div>
+    <div class="card"><h3>Quando crescer</h3><ul class="todo">
+      <li>Pix com confirmação automática (Mercado Pago, Efí ou Asaas)</li><li>Lembrete pelo servidor, mesmo com o app fechado</li><li>Vigiar o nome todo dia automaticamente</li><li>Login com Google e Apple</li></ul></div>
+  </div>
+  <div class="note"><b>Limites honestos:</b> os lembretes dependem do celular (no iPhone, só com o app instalado na Tela de Início); por isso existe o botão "Agenda do celular", que garante o alarme. A busca depende de as fontes públicas responderem; quando não respondem, o app abre a consulta oficial. A aprovação do Pix é manual até integrar um intermediador.</div>
+  <div class="grid2" style="margin-top:8mm">
+    <div class="qr" style="background:var(--navy);color:#fff"><div class="code" data-qr="https://williancoder.github.io/pm-alerta-audiencias/"></div><div><small>Para os clientes</small><b>O app</b><span>williancoder.github.io/pm-alerta-audiencias</span></div></div>
+    <div class="qr" style="background:var(--navy);color:#fff"><div class="code" data-qr="https://williancoder.github.io/pm-alerta-audiencias/admin.html"></div><div><small>Para o dono</small><b>O painel</b><span>williancoder.github.io/pm-alerta-audiencias/admin.html</span></div></div>
+  </div>
+  <div class="foot"><span>Alerta Audiência · Apresentação</span><span>9</span></div>
+</section>
+
+<script src="../assets/js/vendor/qrcode.js"></script>
+<script>
+  document.querySelectorAll('[data-qr]').forEach((el) => {
+    const q = qrcode(0, 'M'); q.addData(el.dataset.qr); q.make();
+    el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+  });
+  document.body.dataset.pronto = '1';
+</script>
+</body>
+</html>

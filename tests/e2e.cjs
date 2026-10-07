@@ -16,9 +16,10 @@ const ok = (cond, msg) => { console.log((cond ? '✅ ' : '❌ ') + msg); if (!co
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => m.type() === 'error' && !/adsbygoogle|googlesyndication|ERR_/.test(m.text()) && errs.push(m.text()));
   // Fontes públicas simuladas (o ambiente de teste não acessa a internet).
-  await ctx.route('**/comunicaapi.pje.jus.br/**', (r) => r.fulfill({ json: { items: [{ siglaTribunal: 'TJSP', nomeOrgao: '3ª Vara Cível de Campinas', data_disponibilizacao: '2026-10-01', numeroprocessocommascara: '1001234-56.2026.8.26.0114', texto: 'Fica intimada a parte JOANA DA SILVA para audiência de conciliação...', link: 'https://comunica.pje.jus.br/' }] } }));
+  await ctx.route('**/comunicaapi.pje.jus.br/**', (r) => r.fulfill({ json: { items: [{ siglaTribunal: 'TJSP', nomeOrgao: '3ª Vara Cível de Campinas', data_disponibilizacao: '2026-10-01', numeroprocessocommascara: '1001234-41.2026.8.26.0114', texto: 'Fica intimada a parte JOANA DA SILVA para audiência de conciliação...', link: 'https://comunica.pje.jus.br/' }] } }));
   await ctx.route('**/api.queridodiario.ok.org.br/**', (r) => r.fulfill({ json: { gazettes: [] } }));
-  const S = (n) => p.screenshot({ path: OUT + n + '.png', fullPage: true });
+  // Fotos limpas para a apresentação: sem avisos temporários nem a faixa do modo demonstração.
+  const S = async (n) => { await p.addStyleTag({ content: '.toast,#demo-banner{display:none!important}' }); await p.screenshot({ path: OUT + n + '.png', fullPage: true }); };
   const dialogs = []; p.on('dialog', (d) => { dialogs.push(d.message()); d.accept(); });
 
   // Páginas públicas sem login
@@ -34,12 +35,12 @@ const ok = (cond, msg) => { console.log((cond ? '✅ ' : '❌ ') + msg); if (!co
 
   // Colar intimação
   await p.goto(BASE + '#/nova'); await p.waitForSelector('#intimacao');
-  await p.fill('#intimacao', 'Processo nº 1001234-56.2026.8.26.0114. Fica V. Sa. intimada para a audiência de conciliação designada para o dia 18/11/2026, às 14h30, a ser realizada por videoconferência pelo link https://tjsp.zoom.us/j/123456789 — 3ª Vara Cível de Campinas.');
+  await p.fill('#intimacao', 'Processo nº 1001234-41.2026.8.26.0114. Fica V. Sa. intimada para a audiência de conciliação designada para o dia 18/11/2026, às 14h30, a ser realizada por videoconferência pelo link https://tjsp.zoom.us/j/123456789 — 3ª Vara Cível de Campinas.');
   await S('03-colar-intimacao');
   await p.click('[data-act=ler-intimacao]');
   ok(await p.inputValue('[name=data]') === '2026-11-18', 'Intimação: data lida');
   ok(await p.inputValue('[name=hora]') === '14:30', 'Intimação: hora lida');
-  ok((await p.inputValue('[name=processo]')).startsWith('1001234-56.2026.8.26.0114'), 'Intimação: processo lido');
+  ok((await p.inputValue('[name=processo]')).startsWith('1001234-41.2026.8.26.0114'), 'Intimação: processo lido');
   ok(await p.inputValue('[name=link]') === 'https://tjsp.zoom.us/j/123456789', 'Intimação: link da sala lido');
   ok(await p.inputValue('[name=fase]') === 'Conciliação ou mediação', 'Intimação: tipo de audiência reconhecido');
   ok((await p.inputValue('[name=vara]')).includes('3ª Vara Cível'), 'Intimação: vara lida');
@@ -66,7 +67,7 @@ const ok = (cond, msg) => { console.log((cond ? '✅ ' : '❌ ') + msg); if (!co
   // Busca com limite grátis (2 por mês)
   await p.goto(BASE + '#/buscar'); await p.waitForSelector('#f-busca');
   await p.click('#f-busca button[type=submit]'); await p.waitForSelector('.hit');
-  ok(await p.isVisible('text=1001234-56.2026.8.26.0114'), 'Busca mostra resultado do CNJ');
+  ok(await p.isVisible('text=1001234-41.2026.8.26.0114'), 'Busca mostra resultado do CNJ');
   ok((await p.textContent('#uso')).includes('1/2'), 'Contador de buscas: 1/2');
   await S('08-busca');
   await p.click('#f-busca button[type=submit]'); await p.waitForTimeout(400);
