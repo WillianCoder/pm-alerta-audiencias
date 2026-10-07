@@ -19,19 +19,30 @@ export const DEFAULT_SITE = {
       'Lembretes extras personalizados'
     ]
   },
+  // Limites de uso por conta (as regras do Firestore conferem os mesmos números no servidor).
+  limites: { buscasGratisMes: 2, buscasPremiumDia: 5, buscasPremiumMes: 60 },
   pix: { chave: '', nome: '', cidade: '', doacoes: [5, 10, 20, 50] },
   contato: { email: '', whatsapp: '' },
   // posição -> 'off' | 'adsense' | 'proprio'
   ads: {
     client: '',
-    slots: { topo: '', destaque: '', lista: '', rodape: '' },
-    posicoes: { topo: 'off', destaque: 'off', lista: 'off', rodape: 'off' }
+    slots: { topo: '', destaque: '', lista: '', busca: '', artigos: '', rodape: '' },
+    posicoes: { topo: 'off', destaque: 'off', lista: 'off', busca: 'off', artigos: 'off', rodape: 'off' }
   },
   anuncios: [],
+  // Página "Anuncie aqui": pacotes vendidos direto aos anunciantes.
+  pacotes: [
+    { nome: 'Destaque na tela inicial', preco: 'R$ 49 por semana', desc: 'Seu anúncio logo abaixo da próxima audiência, a área mais vista do app.' },
+    { nome: 'Patrocinador da busca', preco: 'R$ 79 por mês', desc: 'Apareça para quem acabou de procurar o próprio nome em processos — público com necessidade imediata.' },
+    { nome: 'Rodapé em todas as telas', preco: 'R$ 99 por mês', desc: 'Presença constante em todas as telas do app e nos artigos do guia.' },
+    { nome: 'Pacote completo', preco: 'R$ 199 por mês', desc: 'Todas as posições acima. Ideal para escritórios de advocacia, cursos e serviços jurídicos.' }
+  ],
+  publico: '',
   aviso: ''
 };
 
-const POSICOES = ['topo', 'destaque', 'lista', 'rodape'];
+const POSICOES = ['topo', 'destaque', 'lista', 'busca', 'artigos', 'rodape'];
+const MAX_PAGAMENTOS_DIA = 3; // avisos de "Já paguei" por conta, por dia (mesmo número nas regras)
 export { POSICOES };
 
 export function mergeSite(raw) {
@@ -45,10 +56,25 @@ export function mergeSite(raw) {
     Object.assign(s.ads.slots, r.ads.slots || {});
     Object.assign(s.ads.posicoes, r.ads.posicoes || {});
   }
+  Object.assign(s.limites, r.limites || {});
   s.anuncios = Array.isArray(r.anuncios) ? r.anuncios : [];
+  if (Array.isArray(r.pacotes)) s.pacotes = r.pacotes;
+  s.publico = r.publico || '';
   s.aviso = r.aviso || '';
   return s;
 }
+
+// Períodos em UTC, iguais aos que as regras do Firestore conferem (request.time).
+export function periodos(d = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  const mes = `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}`;
+  return { mes, dia: `${mes}-${p(d.getUTCDate())}`, compacto: `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}` };
+}
+export function limitesBusca(site, premium) {
+  const L = site.limites;
+  return premium ? { mes: Number(L.buscasPremiumMes), dia: Number(L.buscasPremiumDia) } : { mes: Number(L.buscasGratisMes), dia: Number(L.buscasGratisMes) };
+}
+const limiteErr = (code) => { const e = new Error(code); e.code = code; return e; };
 
 export const isPremium = (perfil) => !!(perfil && perfil.plano && perfil.plano.ate && new Date(perfil.plano.ate) > new Date());
 
@@ -61,7 +87,7 @@ function localStore() {
   const K = 'pma-demo-v1';
   const load = () => { try { return JSON.parse(localStorage.getItem(K)) || {}; } catch { return {}; } };
   let db = load();
-  db.users = db.users || {}; db.aud = db.aud || {}; db.pag = db.pag || {}; db.site = db.site || null;
+  db.users = db.users || {}; db.aud = db.aud || {}; db.pag = db.pag || {}; db.site = db.site || null; db.uso = db.uso || {};
   const save = () => { try { localStorage.setItem(K, JSON.stringify(db)); } catch { /* armazenamento cheio ou bloqueado */ } };
   let current = null; try { current = sessionStorage.getItem('pma-demo-user'); } catch { /* sem sessionStorage */ }
   const listeners = new Set();
@@ -108,7 +134,21 @@ function localStore() {
     async saveAudiencia(a) { const id = a.id || uid(); const { id: _, ...data } = a; db.aud[id] = { ...data, uid: current, atualizadoEm: new Date().toISOString() }; save(); return id; },
     async removeAudiencia(id) { if (db.aud[id] && db.aud[id].uid === current) { delete db.aud[id]; save(); } },
     async getSite() { return mergeSite(db.site); },
-    async criarPagamento(p) { const id = uid(); db.pag[id] = { ...p, uid: current, email: db.users[current].email, status: 'pendente', criadoEm: new Date().toISOString() }; save(); return id; },
+    async criarPagamento(p) {
+      const { compacto } = periodos();
+      const k = [1, 2, 3].find((n) => !db.pag[`${current}-${compacto}-${n}`]);
+      if (!k || k > MAX_PAGAMENTOS_DIA) throw limiteErr('limite/pagamentos');
+      const id = `${current}-${compacto}-${k}`;
+      db.pag[id] = { ...p, uid: current, email: db.users[current].email, status: 'pendente', criadoEm: new Date().toISOString() }; save(); return id;
+    },
+    async usoBusca() { const { mes, dia } = periodos(); const u = db.uso[current] || {}; return { mes: u[mes] || 0, dia: u[dia] || 0 }; },
+    async registrarBusca(lim) {
+      const { mes, dia } = periodos(); const u = db.uso[current] = db.uso[current] || {};
+      if ((u[mes] || 0) >= lim.mes) throw limiteErr('limite/mes');
+      if ((u[dia] || 0) >= lim.dia) throw limiteErr('limite/dia');
+      u[mes] = (u[mes] || 0) + 1; u[dia] = (u[dia] || 0) + 1; save();
+      return { mes: u[mes], dia: u[dia] };
+    },
     async meusPagamentos() { return Object.entries(db.pag).filter(([, p]) => p.uid === current).map(([id, p]) => ({ ...p, id })); },
     // ----- administração -----
     async isAdmin() { return isAdmin(); },
@@ -149,6 +189,11 @@ async function firebaseStore(cfg, v) {
   const auth = A.getAuth(app);
   auth.languageCode = 'pt-BR';
   const db = F.getFirestore(app);
+  // Só para testes locais: "emuladores": true em config.js usa os emuladores do Firebase.
+  if ((window.PM_CONFIG || {}).emuladores) {
+    A.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    F.connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  }
   const me = () => auth.currentUser;
   const meRef = () => F.doc(db, 'users', me().uid);
   const audCol = () => F.collection(db, 'users', me().uid, 'audiencias');
@@ -186,9 +231,35 @@ async function firebaseStore(cfg, v) {
     },
     removeAudiencia: (id) => F.deleteDoc(F.doc(audCol(), id)),
     async getSite() { try { const s = await F.getDoc(F.doc(db, 'config', 'site')); return mergeSite(s.exists() ? s.data() : null); } catch { return mergeSite(null); } },
+    // ID = uid-AAAAMMDD-N (N de 1 a 3): as regras só aceitam 3 avisos por conta por dia e não deixam sobrescrever.
     async criarPagamento(p) {
-      const ref = await F.addDoc(F.collection(db, 'pagamentos'), { ...p, uid: me().uid, email: me().email, status: 'pendente', criadoEm: F.serverTimestamp() });
-      return ref.id;
+      const { compacto } = periodos();
+      for (let n = 1; n <= MAX_PAGAMENTOS_DIA; n++) {
+        const ref = F.doc(db, 'pagamentos', `${me().uid}-${compacto}-${n}`);
+        try {
+          await F.setDoc(ref, { ...p, uid: me().uid, email: me().email, status: 'pendente', criadoEm: F.serverTimestamp() });
+          return ref.id;
+        } catch (e) { if (e.code !== 'permission-denied') throw e; } // já existe: tenta o próximo número
+      }
+      throw limiteErr('limite/pagamentos');
+    },
+    async usoBusca() {
+      const { mes, dia } = periodos();
+      const [a, b] = await Promise.all([F.getDoc(F.doc(db, 'users', me().uid, 'uso', mes)), F.getDoc(F.doc(db, 'users', me().uid, 'uso', dia))]);
+      return { mes: a.exists() ? a.data().n : 0, dia: b.exists() ? b.data().n : 0 };
+    },
+    // Conta uma busca no mês e no dia. As regras recusam passar do limite, mesmo que alguém altere o app.
+    async registrarBusca(lim) {
+      const { mes, dia } = periodos();
+      const rm = F.doc(db, 'users', me().uid, 'uso', mes), rd = F.doc(db, 'users', me().uid, 'uso', dia);
+      return F.runTransaction(db, async (t) => {
+        const [a, b] = [await t.get(rm), await t.get(rd)];
+        const nm = (a.exists() ? a.data().n : 0) + 1, nd = (b.exists() ? b.data().n : 0) + 1;
+        if (nm > lim.mes) throw limiteErr('limite/mes');
+        if (nd > lim.dia) throw limiteErr('limite/dia');
+        t.set(rm, { n: nm }); t.set(rd, { n: nd });
+        return { mes: nm, dia: nd };
+      });
     },
     async meusPagamentos() {
       const q = F.query(F.collection(db, 'pagamentos'), F.where('uid', '==', me().uid));
@@ -249,7 +320,10 @@ export function authMessage(e) {
     'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos e tente de novo.',
     'auth/network-request-failed': 'Sem conexão com a internet.',
     'auth/requires-recent-login': 'Por segurança, saia e entre de novo antes de excluir a conta.',
-    'permission-denied': 'Você não tem permissão para isso.'
+    'permission-denied': 'Você não tem permissão para isso.',
+    'limite/mes': 'Você atingiu o limite de buscas deste mês.',
+    'limite/dia': 'Você atingiu o limite de buscas de hoje. Tente amanhã.',
+    'limite/pagamentos': 'Você já enviou 3 avisos de pagamento hoje. Aguarde a conferência ou fale com o suporte.'
   };
   return map[c] || 'Algo deu errado. Tente novamente.';
 }

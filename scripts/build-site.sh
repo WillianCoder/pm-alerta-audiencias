@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 rm -rf _site && mkdir -p _site
-cp index.html admin.html privacidade.html termos.html sw.js manifest.webmanifest robots.txt ads.txt _headers _site/
-cp -r assets _site/
+cp index.html admin.html privacidade.html termos.html sobre.html sw.js manifest.webmanifest robots.txt sitemap.xml ads.txt _headers _site/
+cp -r assets guia _site/
 touch _site/.nojekyll
 echo "Site montado em _site/"

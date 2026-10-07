@@ -10,10 +10,33 @@ service cloud.firestore {
     function str(v, max) { return v is string && v.size() <= max; }
     function optStr(d, k, max) { return !(k in d) || str(d[k], max); }
 
+    // ---------- Limites de uso ----------
+    // Lê o limite do painel (config/site.limites) ou usa o padrão.
+    function cfgLim(k, padrao) {
+      let p = /databases/$(database)/documents/config/site;
+      return exists(p) && ('limites' in get(p).data) ? get(p).data.limites.get(k, padrao) : padrao;
+    }
+    function premiumAtivo(uid) {
+      let u = get(/databases/$(database)/documents/users/$(uid)).data;
+      return ('plano' in u) && u.plano != null && u.plano.ate > request.time;
+    }
+    // Período "AAAA-MM" (mês) ou "AAAA-MM-DD" (dia) precisa ser o atual (UTC).
+    function periodoAtual(p) {
+      let s = p.split('-');
+      return (s.size() == 2 || s.size() == 3)
+        && int(s[0]) == request.time.year() && int(s[1]) == request.time.month()
+        && (s.size() == 2 || int(s[2]) == request.time.day());
+    }
+    function limiteBusca(uid, p) {
+      return premiumAtivo(uid)
+        ? (p.split('-').size() == 2 ? cfgLim('buscasPremiumMes', 60) : cfgLim('buscasPremiumDia', 5))
+        : cfgLim('buscasGratisMes', 2);
+    }
+
     // Perfil: o próprio usuário edita seus dados, mas NUNCA o campo "plano" (Premium).
     function perfilValido(d) {
-      return d.keys().hasOnly(['nome', 'uf', 'lembretes', 'aceiteEm', 'email', 'criadoEm', 'plano'])
-        && str(d.nome, 120) && str(d.uf, 2)
+      return d.keys().hasOnly(['nome', 'outroNome', 'uf', 'lembretes', 'aceiteEm', 'email', 'criadoEm', 'plano'])
+        && str(d.nome, 120) && optStr(d, 'outroNome', 120) && str(d.uf, 2)
         && (!('lembretes' in d) || (d.lembretes is list && d.lembretes.size() <= 10));
     }
     match /users/{uid} {
@@ -31,19 +54,39 @@ service cloud.firestore {
       match /audiencias/{id} {
         allow read, delete: if isSelf(uid);
         allow create, update: if isSelf(uid)
-          && request.resource.data.keys().hasOnly(['titulo', 'data', 'hora', 'papel', 'tipo', 'processo', 'vara', 'modalidade', 'local', 'link', 'obs', 'status', 'atualizadoEm'])
+          && request.resource.data.keys().hasOnly(['titulo', 'data', 'hora', 'fase', 'papel', 'tipo', 'processo', 'vara', 'modalidade', 'local', 'link', 'obs', 'status', 'atualizadoEm'])
           && str(request.resource.data.titulo, 120) && str(request.resource.data.data, 10) && str(request.resource.data.hora, 5)
           && optStr(request.resource.data, 'processo', 30) && optStr(request.resource.data, 'vara', 120)
           && optStr(request.resource.data, 'local', 200) && optStr(request.resource.data, 'link', 500)
           && optStr(request.resource.data, 'obs', 1000)
+          && optStr(request.resource.data, 'fase', 40) && optStr(request.resource.data, 'papel', 60) && optStr(request.resource.data, 'tipo', 60)
           && request.resource.data.status in ['agendada', 'realizada', 'adiada', 'cancelada'];
+      }
+
+      // Contadores de busca: só sobem de 1 em 1, só no período atual e nunca passam do limite.
+      // Não podem ser apagados no período atual (senão bastaria apagar para "zerar" o limite).
+      match /uso/{periodo} {
+        allow read: if isSelf(uid) || isAdmin();
+        allow create: if isSelf(uid) && periodoAtual(periodo)
+          && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == 1
+          && 1 <= limiteBusca(uid, periodo);
+        allow update: if isSelf(uid) && periodoAtual(periodo)
+          && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == resource.data.n + 1
+          && request.resource.data.n <= limiteBusca(uid, periodo);
+        allow delete: if isSelf(uid) && !periodoAtual(periodo);
       }
     }
 
     // Pagamentos Pix: o usuário só AVISA (status pendente). Só o administrador aprova.
+    // ID = uid-AAAAMMDD-N com N de 1 a 3: no máximo 3 avisos por conta por dia, sem sobrescrever.
+    function pagIdValido(id) {
+      let s = id.split('-');
+      return s.size() == 3 && s[0] == request.auth.uid && s[2] in ['1', '2', '3']
+        && int(s[1]) == request.time.year() * 10000 + request.time.month() * 100 + request.time.day();
+    }
     match /pagamentos/{id} {
       allow read: if (signedIn() && resource.data.uid == request.auth.uid) || isAdmin();
-      allow create: if signedIn()
+      allow create: if signedIn() && pagIdValido(id)
         && request.resource.data.keys().hasOnly(['txid', 'valor', 'produto', 'uid', 'email', 'status', 'criadoEm'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email

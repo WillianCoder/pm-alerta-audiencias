@@ -6,7 +6,7 @@
  */
 import { createStore, authMessage, isPremium, POSICOES } from './store.js';
 import { $, $$, esc, safeUrl, toast } from './util.js';
-import { LABELS } from './ads.js';
+import { LABELS, anuncioAtivo } from './ads.js';
 
 const root = $('#adm');
 const S = { store: null, site: null, pag: [], users: [], tab: 'geral' };
@@ -39,7 +39,7 @@ function renderLogin() {
   };
 }
 
-const TABS = [['geral', '📊 Visão geral'], ['pagamentos', '💰 Pagamentos'], ['usuarios', '👥 Usuários'], ['planos', '⭐ Preço e Pix'], ['anuncios', '📢 Anúncios'], ['avisos', '📣 Aviso geral']];
+const TABS = [['geral', '📊 Visão geral'], ['pagamentos', '💰 Pagamentos'], ['usuarios', '👥 Usuários'], ['planos', '⭐ Planos, limites e Pix'], ['anuncios', '📢 Anúncios'], ['avisos', '📣 Aviso geral']];
 
 function render() {
   const pend = S.pag.filter((p) => p.status === 'pendente').length;
@@ -61,14 +61,24 @@ function geral() {
       ${tile(S.users.length, 'Usuários')}${tile(prem, 'Premium ativos')}
       ${tile('R$ ' + receitaMes.toFixed(2).replace('.', ','), 'Receita do mês')}${tile('R$ ' + receita.toFixed(2).replace('.', ','), 'Receita total')}
       ${tile(S.pag.filter((p) => p.status === 'pendente').length, 'Pix aguardando')}
+      ${tile(S.site.anuncios.filter(anuncioAtivo).length, 'Anúncios próprios no ar')}
     </div>
+    ${vencendo()}
     <section class="card"><h2>Checklist para lucrar</h2><ul class="checklist">
       ${ok(S.store.mode === 'firebase', 'Firebase configurado (contas reais)')}
       ${ok(S.site.pix.chave, 'Chave Pix cadastrada — Premium e doações no ar')}
       ${ok(S.site.ads.client, 'Google AdSense configurado')}
       ${ok(Object.values(S.site.ads.posicoes).some((v) => v !== 'off'), 'Pelo menos uma posição de anúncio ligada')}
-      ${ok(S.site.contato.whatsapp || S.site.contato.email, 'Contato para suporte e anunciantes')}
+      ${ok(S.site.contato.whatsapp || S.site.contato.email, 'Contato para suporte e anunciantes — página <b>Anuncie aqui</b> no ar')}
+      ${ok(S.site.pacotes.length, 'Pacotes de anúncio com preço')}
     </ul></section>`;
+}
+
+// Anúncios que vencem nos próximos 7 dias: hora de oferecer a renovação ao anunciante.
+function vencendo() {
+  const em7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10), hoje = new Date().toISOString().slice(0, 10);
+  const v = S.site.anuncios.filter((a) => a.ativo && a.ate && a.ate >= hoje && a.ate <= em7);
+  return v.length ? `<div class="notice warn">⏰ Vencendo em até 7 dias: ${v.map((a) => `<b>${esc(a.titulo)}</b> (${esc(a.ate.split('-').reverse().join('/'))})`).join(', ')}. Ofereça a renovação!</div>` : '';
 }
 
 function pagamentos() {
@@ -99,6 +109,11 @@ function planos() {
     <label>Dias de acesso por pagamento<input name="dias" type="number" min="1" value="${esc(p.dias)}" required></label></div>
     <label>Limite de audiências no plano grátis<input name="limiteGratis" type="number" min="1" value="${esc(p.limiteGratis)}" required></label>
     <label>Benefícios (um por linha)<textarea name="beneficios" rows="5">${esc(p.beneficios.join('\n'))}</textarea></label>
+    <h2>Limites de busca do nome</h2>
+    <p class="muted small">Valem por conta e são conferidos pelo servidor (o dia vira à meia-noite UTC, 21h de Brasília). Sugestão justa: grátis 2 por mês; Premium 5 por dia e até 60 por mês.</p>
+    <div class="grid2"><label>Grátis — buscas por mês<input name="buscasGratisMes" type="number" min="0" max="30" value="${esc(S.site.limites.buscasGratisMes)}" required></label>
+    <label>Premium — buscas por dia<input name="buscasPremiumDia" type="number" min="1" max="50" value="${esc(S.site.limites.buscasPremiumDia)}" required></label></div>
+    <label>Premium — buscas por mês<input name="buscasPremiumMes" type="number" min="1" max="500" value="${esc(S.site.limites.buscasPremiumMes)}" required></label>
     <h2>Pix</h2>
     <label>Chave Pix<input name="chave" value="${esc(x.chave)}" placeholder="CPF, CNPJ, e-mail, celular (+55…) ou chave aleatória" required></label>
     <div class="grid2"><label>Nome do recebedor <small>(até 25 letras)</small><input name="nome" maxlength="25" value="${esc(x.nome)}" required></label>
@@ -123,14 +138,21 @@ function anuncios() {
     <button class="btn primary">Salvar posições</button></form>
     <section class="card"><h2>Anúncios próprios (patrocinadores)</h2>
     <p class="muted">Venda espaço direto para lojas, cursinhos, advogados… receba por Pix e cadastre aqui.</p>
-    <div class="list">${S.site.anuncios.map((x, i) => `<div class="ad-item"><div><b>${esc(x.titulo)}</b> <small>${x.ativo ? '🟢 ativo' : '⚪ pausado'} · ${esc(x.posicao === 'todas' ? 'Todas as posições' : LABELS[x.posicao] || x.posicao)}</small><br><small class="muted">${esc(x.link)}</small></div>
-      <div class="row"><button class="btn small" data-ad-toggle="${i}">${x.ativo ? 'Pausar' : 'Ativar'}</button><button class="btn small danger" data-ad-del="${i}">Excluir</button></div></div>`).join('') || '<p class="muted">Nenhum ainda.</p>'}</div>
+    <div class="list">${S.site.anuncios.map((x, i) => `<div class="ad-item"><div><b>${esc(x.titulo)}</b> <small>${!x.ativo ? '⚪ pausado' : anuncioAtivo(x) ? '🟢 no ar' : '🔴 vencido'} · ${esc(x.posicao === 'todas' ? 'Todas as posições' : LABELS[x.posicao] || x.posicao)}${x.ate ? ' · até ' + esc(x.ate.split('-').reverse().join('/')) : ''}</small><br><small class="muted">${esc(x.link)}</small></div>
+      <div class="row"><button class="btn small" data-ad-renew="${i}">+30 dias</button><button class="btn small" data-ad-toggle="${i}">${x.ativo ? 'Pausar' : 'Ativar'}</button><button class="btn small danger" data-ad-del="${i}">Excluir</button></div></div>`).join('') || '<p class="muted">Nenhum ainda.</p>'}</div>
     <form id="f-ad-new"><h3>Novo anúncio</h3>
       <label>Título<input name="titulo" maxlength="60" required></label>
       <label>Texto<input name="texto" maxlength="140"></label>
       <div class="grid2"><label>Link (https://)<input name="link" type="url" required></label><label>Imagem (https://, opcional)<input name="imagem" type="url"></label></div>
-      <label>Posição<select name="posicao"><option value="todas">Todas as posições</option>${POSICOES.map((p) => `<option value="${p}">${esc(LABELS[p])}</option>`).join('')}</select></label>
-      <button class="btn primary">Adicionar</button></form></section>`;
+      <div class="grid2"><label>Posição<select name="posicao"><option value="todas">Todas as posições</option>${POSICOES.map((p) => `<option value="${p}">${esc(LABELS[p])}</option>`).join('')}</select></label>
+      <label>No ar até <small>(sai sozinho depois)</small><input name="ate" type="date" value="${new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)}"></label></div>
+      <p class="muted small">Os cliques chegam ao anunciante com <code>utm_source=alerta-audiencia</code>, para ele medir o retorno.</p>
+      <button class="btn primary">Adicionar</button></form></section>
+    <form id="f-pacotes" class="card"><h2>Página "Anuncie aqui"</h2>
+      <p class="muted small">Pacotes que aparecem para empresas em <a href="./#/anuncie" target="_blank">#/anuncie</a>. Um por linha, no formato: <code>Nome | Preço | Descrição</code></p>
+      <textarea name="pacotes" rows="6">${esc(S.site.pacotes.map((p) => [p.nome, p.preco, p.desc].join(' | ')).join('\n'))}</textarea>
+      <label>Frase sobre o seu público <small>(opcional, ex.: "Mais de 2.000 pessoas usam o app")</small><input name="publico" maxlength="120" value="${esc(S.site.publico)}"></label>
+      <button class="btn primary">Salvar página</button></form>`;
 }
 
 function avisos() {
@@ -169,6 +191,9 @@ function bind() {
     e.preventDefault(); const d = Object.fromEntries(new FormData(fp));
     const preco = Number(d.preco), dias = parseInt(d.dias, 10), lim = parseInt(d.limiteGratis, 10);
     if (!(preco > 0) || !(dias > 0) || !(lim > 0)) return toast('Preço, dias e limite devem ser maiores que zero.', 'err');
+    const L = { buscasGratisMes: parseInt(d.buscasGratisMes, 10), buscasPremiumDia: parseInt(d.buscasPremiumDia, 10), buscasPremiumMes: parseInt(d.buscasPremiumMes, 10) };
+    if (!(L.buscasGratisMes >= 0 && L.buscasGratisMes <= 30) || !(L.buscasPremiumDia >= 1 && L.buscasPremiumDia <= 50) || !(L.buscasPremiumMes >= L.buscasPremiumDia && L.buscasPremiumMes <= 500)) return toast('Limites de busca fora do permitido (o mês precisa ser maior ou igual ao dia).', 'err');
+    S.site.limites = L;
     S.site.premium = { preco, dias, limiteGratis: lim, beneficios: d.beneficios.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 12) };
     S.site.pix = { chave: d.chave.trim(), nome: d.nome.trim(), cidade: d.cidade.trim(), doacoes: d.doacoes.split(',').map((v) => Number(v.trim().replace(',', '.'))).filter((v) => v > 0).slice(0, 6) };
     S.site.contato = { whatsapp: d.whatsapp.replace(/\D/g, ''), email: d.email.trim() };
@@ -192,8 +217,22 @@ function bind() {
   if (fn) fn.onsubmit = (e) => {
     e.preventDefault(); const d = Object.fromEntries(new FormData(fn));
     if (!safeUrl(d.link) || (d.imagem && !safeUrl(d.imagem))) return toast('Use links começando com https://', 'err');
-    S.site.anuncios.push({ titulo: d.titulo.trim(), texto: d.texto.trim(), link: safeUrl(d.link), imagem: d.imagem ? safeUrl(d.imagem) : '', posicao: d.posicao, ativo: true });
+    S.site.anuncios.push({ titulo: d.titulo.trim(), texto: d.texto.trim(), link: safeUrl(d.link), imagem: d.imagem ? safeUrl(d.imagem) : '', posicao: d.posicao, ate: /^\d{4}-\d{2}-\d{2}$/.test(d.ate) ? d.ate : '', ativo: true });
     saveSite('Anúncio adicionado ✅ — lembre de ligar a posição como "Anúncio próprio".');
+  };
+  $$('[data-ad-renew]', root).forEach((b) => {
+    b.onclick = () => {
+      const x = S.site.anuncios[b.dataset.adRenew], hoje = new Date().toISOString().slice(0, 10);
+      const base = new Date((x.ate && x.ate > hoje ? x.ate : hoje) + 'T12:00:00Z'); base.setUTCDate(base.getUTCDate() + 30);
+      x.ate = base.toISOString().slice(0, 10); x.ativo = true; saveSite('Renovado até ' + x.ate.split('-').reverse().join('/') + ' ✅');
+    };
+  });
+  const fpac = $('#f-pacotes');
+  if (fpac) fpac.onsubmit = (e) => {
+    e.preventDefault(); const d = Object.fromEntries(new FormData(fpac));
+    S.site.pacotes = d.pacotes.split('\n').map((l) => l.split('|').map((x) => x.trim())).filter((x) => x[0]).slice(0, 8).map(([nome, preco = '', desc = '']) => ({ nome: nome.slice(0, 60), preco: preco.slice(0, 40), desc: desc.slice(0, 200) }));
+    S.site.publico = d.publico.trim();
+    saveSite();
   };
   $$('[data-ad-toggle]', root).forEach((b) => { b.onclick = () => { const x = S.site.anuncios[b.dataset.adToggle]; x.ativo = !x.ativo; saveSite(); }; });
   $$('[data-ad-del]', root).forEach((b) => { b.onclick = () => { if (confirm('Excluir anúncio?')) { S.site.anuncios.splice(Number(b.dataset.adDel), 1); saveSite(); } }; });

@@ -1,6 +1,6 @@
 /*
  * Alerta Audiência — anúncios.
- * Cada posição da tela (topo, destaque, lista, rodape) é configurada no painel:
+ * Cada posição da tela (topo, destaque, lista, busca, artigos, rodape) é configurada no painel:
  *   'off'     → nada aparece
  *   'adsense' → bloco automático do Google AdSense (renda automática)
  *   'proprio' → anúncio cadastrado no painel (patrocinador que pagou direto via Pix)
@@ -22,17 +22,34 @@ export const LABELS = {
   topo: 'Topo da tela inicial',
   destaque: 'Abaixo da próxima audiência',
   lista: 'No meio da lista de audiências',
+  busca: 'Na tela de busca do nome',
+  artigos: 'Nos artigos do Guia de audiências',
   rodape: 'Rodapé de todas as telas'
 };
+
+const hoje = () => new Date().toISOString().slice(0, 10);
+// Anúncio próprio vale até a data combinada com o anunciante (campo "ate", AAAA-MM-DD).
+export const anuncioAtivo = (a) => !!a.ativo && (!a.ate || a.ate >= hoje());
+
+// Marca o clique para o anunciante medir o retorno no Google Analytics dele.
+export function comUtm(url, pos) {
+  try {
+    const u = new URL(url);
+    if (!u.searchParams.has('utm_source')) {
+      u.searchParams.set('utm_source', 'alerta-audiencia'); u.searchParams.set('utm_medium', 'anuncio'); u.searchParams.set('utm_campaign', pos);
+    }
+    return u.href;
+  } catch { return url; }
+}
 
 export function adHtml(site, pos, premium) {
   if (premium || !site) return '';
   const modo = site.ads.posicoes[pos] || 'off';
   if (modo === 'proprio') {
-    const ativos = site.anuncios.filter((a) => a.ativo && (a.posicao === pos || a.posicao === 'todas'));
+    const ativos = site.anuncios.filter((a) => anuncioAtivo(a) && (a.posicao === pos || a.posicao === 'todas'));
     if (!ativos.length) return '';
     const a = ativos[Math.floor(Math.random() * ativos.length)];
-    const link = safeUrl(a.link), img = safeUrl(a.imagem);
+    const link = safeUrl(a.link) ? comUtm(safeUrl(a.link), pos) : '', img = safeUrl(a.imagem);
     const inner = (img ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async">` : '') +
       `<div><strong>${esc(a.titulo)}</strong>${a.texto ? `<p>${esc(a.texto)}</p>` : ''}</div>`;
     return `<aside class="ad ad-own" aria-label="Publicidade"><span class="ad-tag">Patrocinado</span>` +

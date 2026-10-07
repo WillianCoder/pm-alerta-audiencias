@@ -73,6 +73,16 @@ export function pixPayload({ chave, nome, cidade }, valor, txid = '***', descric
     tlv('62', tlv('05', tx)) + '6304';
   return p + crc16(p);
 }
+// O gerador de QR Code (56 KB) só é baixado quando a pessoa vai pagar ou doar.
+let qrPromise = null;
+export function loadQR() {
+  if (typeof window.qrcode === 'function') return Promise.resolve();
+  qrPromise = qrPromise || new Promise((ok, fail) => {
+    const s = document.createElement('script'); s.src = new URL('vendor/qrcode.js', import.meta.url).href;
+    s.onload = ok; s.onerror = () => { qrPromise = null; fail(new Error('qr')); }; document.head.appendChild(s);
+  });
+  return qrPromise.catch(() => {});
+}
 export function qrSvg(text) {
   if (typeof window.qrcode !== 'function') return '';
   const q = window.qrcode(0, 'M'); q.addData(text); q.make();

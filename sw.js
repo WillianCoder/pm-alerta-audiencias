@@ -1,9 +1,9 @@
 /* Alerta Audiência — service worker: funciona offline e abre o app ao tocar na notificação. */
-const CACHE = 'pma-v2';
+const CACHE = 'pma-v3';
 const SHELL = [
   './', 'index.html', 'privacidade.html', 'termos.html', 'manifest.webmanifest',
   'assets/css/styles.css', 'assets/js/frame-guard.js', 'assets/js/config.js', 'assets/js/store.js', 'assets/js/util.js',
-  'assets/js/ads.js', 'assets/js/app.js', 'assets/js/vendor/qrcode.js',
+  'assets/js/ads.js', 'assets/js/app.js', 'assets/js/conteudo.js', 'assets/js/vendor/qrcode.js',
   'assets/img/icon.svg', 'assets/img/icon-192.png', 'assets/img/icon-512.png'
 ];
 

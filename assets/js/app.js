@@ -1,16 +1,15 @@
 /* Alerta Audiência — aplicativo principal. */
-import { createStore, authMessage, isPremium } from './store.js';
-import { $, $$, esc, safeUrl, toast, when, fmtData, fmtHora, countdown, formatCNJ, validCNJ, pixPayload, qrSvg, novoTxid, buildICS, download, googleAgendaUrl, mapsUrl, wazeUrl } from './util.js';
+import { createStore, authMessage, isPremium, limitesBusca } from './store.js';
+import { $, $$, esc, safeUrl, toast, when, fmtData, fmtHora, countdown, formatCNJ, validCNJ, pixPayload, qrSvg, loadQR, novoTxid, buildICS, download, googleAgendaUrl, mapsUrl, wazeUrl } from './util.js';
 import { adHtml, fillAds } from './ads.js';
-
-const PAPEIS = ['Testemunha', 'Condutor do flagrante', 'Vítima', 'Réu / Acusado', 'Informante', 'Perito', 'Outro'];
-const TIPOS = ['Criminal', 'JECRIM (Juizado Especial Criminal)', 'Justiça Militar', 'Cível', 'Juizado Especial Cível', 'Trabalhista', 'Família', 'Administrativa / Sindicância / PAD', 'Outro'];
+import { PAPEIS, AREAS, FASES, FASES_LISTA, checklist, lerIntimacao } from './conteudo.js';
 const STATUS = { agendada: 'Agendada', realizada: 'Realizada', adiada: 'Adiada', cancelada: 'Cancelada' };
 const LEMBRETES_PADRAO = [10080, 1440, 120]; // 7 dias, 1 dia, 2 horas (em minutos)
 const LEMBRETE_OPCOES = [[20160, '14 dias'], [10080, '7 dias'], [4320, '3 dias'], [1440, '1 dia'], [720, '12 horas'], [240, '4 horas'], [120, '2 horas'], [60, '1 hora'], [30, '30 minutos']];
 const UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
-const S = { store: null, user: null, perfil: null, site: null, aud: [], admin: false, timer: null };
+const S = { store: null, user: null, perfil: null, site: null, aud: [], admin: false, timer: null, install: null };
+const PUBLICAS = ['ajuda', 'anuncie', 'apoie'];
 const app = $('#app');
 const premium = () => isPremium(S.perfil);
 
@@ -34,6 +33,8 @@ const premium = () => isPremium(S.perfil);
   });
   window.addEventListener('hashchange', render);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  // Android/Chrome: guarda o convite de instalação para o botão "Instalar o app".
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); S.install = e; if (S.user && route()[0] === 'inicio') render(); });
 })();
 
 const route = () => (location.hash.replace(/^#\/?/, '') || 'inicio').split('/');
@@ -41,13 +42,13 @@ const go = (h) => { if (location.hash === h) render(); else location.hash = h; }
 
 function render() {
   const [r, id] = route();
-  if (!S.user) { renderAuth(r); return; }
-  $('#nav').hidden = false;
+  if (!S.user && !PUBLICAS.includes(r)) { renderAuth(r); return; }
+  $('#nav').hidden = !S.user;
   $$('#nav a').forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#/' + r || (r === 'inicio' && a.getAttribute('href') === '#/')));
-  const views = { inicio: vInicio, audiencias: vLista, nova: () => vForm(), editar: () => vForm(id), ver: () => vVer(id), buscar: vBuscar, premium: vPremium, conta: vConta, apoie: vApoie };
-  const html = (views[r] || vInicio)();
+  const views = { inicio: vInicio, audiencias: vLista, nova: () => vForm(), editar: () => vForm(id), ver: () => vVer(id), buscar: vBuscar, premium: vPremium, conta: vConta, apoie: vApoie, ajuda: vAjuda, anuncie: vAnuncie };
+  const html = (S.user ? '' : '<a href="#/entrar" class="back">← Entrar ou criar conta</a>') + (views[r] || vInicio)();
   const aviso = S.site.aviso ? `<div class="notice">${esc(S.site.aviso)}</div>` : '';
-  app.innerHTML = aviso + html + adHtml(S.site, 'rodape', premium());
+  app.innerHTML = aviso + html + adHtml(S.site, 'rodape', premium()) + rodape();
   app.focus({ preventScroll: true });
   window.scrollTo(0, 0);
   bind(r, id);
@@ -63,12 +64,13 @@ function renderAuth(r) {
   <section class="hero">
     <div class="hero-badge">⚖️ Para quem tem audiência marcada</div>
     <h1>Nunca mais perca uma audiência.</h1>
-    <p>Anote suas intimações, receba lembretes no celular e saiba exatamente do que se trata, onde é e a que horas — em segundos.</p>
+    <p>Recebeu uma intimação? Cole o texto, o app organiza tudo e te lembra no celular. Você sabe do que se trata, onde é, a que horas e o que levar.</p>
     <ul class="hero-list">
+      <li>📋 Cole a intimação: data, hora e processo preenchidos sozinhos</li>
       <li>⏰ Lembretes 7 dias, 1 dia e 2 horas antes</li>
-      <li>📍 Como chegar ao fórum ou link da sala virtual</li>
-      <li>🔎 Premium: busca do seu nome em diários e comunicações oficiais</li>
-      <li>📱 Funciona no iPhone, Android e computador</li>
+      <li>✅ Lista do que levar e explicação de cada tipo de audiência</li>
+      <li>🔎 Busca do seu nome em comunicações oficiais da Justiça</li>
+      <li>📱 Funciona no iPhone, Android e computador — grátis para começar</li>
     </ul>
   </section>
   <section class="card auth">
@@ -98,7 +100,7 @@ function renderAuth(r) {
       <button class="btn primary block" type="submit">Criar conta grátis</button>
       <p class="muted center small">Grátis até ${p.limiteGratis} audiências. Premium por R$ ${p.preco} — ${p.dias >= 365 ? '1 ano' : p.dias + ' dias'} de acesso.</p>
     </form>`}
-  </section>`;
+  </section>` + rodape();
 
   const busy = (f, on) => { const b = $('button[type=submit]', f); b.disabled = on; b.classList.toggle('loading', on); };
   const fl = $('#f-login'), fr = $('#f-rec'), fc = $('#f-cad');
@@ -138,7 +140,7 @@ function audCard(a) {
     <div class="aud-body">
       <strong>${esc(a.titulo || 'Audiência')}</strong>
       <span>${esc(fmtHora(d))} · ${esc(a.modalidade === 'virtual' ? 'Virtual' : (a.local || a.vara || 'Local a definir'))}</span>
-      <span class="tags"><em>${esc(a.papel || '')}</em>${a.status !== 'agendada' ? `<em class="st-${esc(a.status)}">${esc(STATUS[a.status])}</em>` : `<em class="cd">${esc(countdown(d))}</em>`}</span>
+      <span class="tags">${a.fase && a.fase !== 'Outra' ? `<em>${esc(a.fase)}</em>` : a.papel ? `<em>${esc(a.papel)}</em>` : ''}${a.status !== 'agendada' ? `<em class="st-${esc(a.status)}">${esc(STATUS[a.status])}</em>` : `<em class="cd">${esc(countdown(d))}</em>`}</span>
     </div></a>`;
 }
 
@@ -152,13 +154,14 @@ function vInicio() {
   <h1 class="hello">Olá, ${saud} 👋</h1>
   ${S.user.emailVerified === false ? `<div class="notice warn">Confirme seu e-mail para proteger sua conta. <button class="link" data-act="reenviar">Reenviar e-mail</button></div>` : ''}
   ${notif ? `<div class="notice"><span>🔔 Ative as notificações para receber os lembretes neste aparelho.</span> <button class="btn small" data-act="notif">Ativar</button></div>` : ''}
+  ${instalarHtml()}
   ${prox ? `
   <section class="next card">
     <p class="eyebrow">Próxima audiência</p>
     <h2>${esc(prox.titulo || 'Audiência')}</h2>
     <p class="big-cd">${esc(countdown(when(prox)))}</p>
     <p>${esc(fmtData(when(prox)))} às <b>${esc(fmtHora(when(prox)))}</b></p>
-    <p class="muted">${esc(prox.papel || '')}${prox.tipo ? ' · ' + esc(prox.tipo) : ''}</p>
+    <p class="muted">${[prox.fase, prox.papel, prox.tipo].filter((x) => x && x !== 'Outra').map(esc).join(' · ')}</p>
     <div class="row"><a class="btn primary" href="#/ver/${esc(prox.id)}">Ver detalhes</a>
     ${prox.modalidade === 'virtual' && safeUrl(prox.link) ? `<a class="btn" href="${esc(safeUrl(prox.link))}" target="_blank" rel="noopener">Entrar na sala</a>` : prox.local ? `<a class="btn" href="${esc(mapsUrl(prox.local))}" target="_blank" rel="noopener">Como chegar</a>` : ''}</div>
   </section>` : `
@@ -171,6 +174,20 @@ function vInicio() {
   ${f.length > 1 ? `<h3 class="sec">Em seguida</h3><div class="list">${f.slice(1, 4).map(audCard).join('')}</div>` : ''}
   ${!premium() ? `<a class="card upsell" href="#/premium"><b>⭐ Premium por R$ ${esc(S.site.premium.preco)}</b><span>Audiências ilimitadas, busca do seu nome em diários oficiais e sem anúncios.</span></a>` : ''}
   ${S.admin ? `<p class="center"><a class="btn small" href="admin.html">⚙️ Painel administrativo</a></p>` : ''}`;
+}
+
+// Convite para instalar: botão no Android/Chrome, instrução no iPhone. Some quando já está instalado.
+function instalarHtml() {
+  const instalado = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  let dispensado = false; try { dispensado = !!localStorage.getItem('pma-no-install'); } catch { /* ok */ }
+  if (instalado || dispensado) return '';
+  if (S.install) return `<div class="notice"><span>📲 Instale o app na tela inicial: abre mais rápido e funciona sem internet.</span><span><button class="btn small primary" data-act="instalar">Instalar</button> <button class="link small" data-act="no-install">Agora não</button></span></div>`;
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) return `<div class="notice"><span>📲 No iPhone: toque em <b>Compartilhar</b> ⬆️ e depois em <b>Adicionar à Tela de Início</b>. Assim os lembretes funcionam.</span><button class="link small" data-act="no-install">Ok</button></div>`;
+  return '';
+}
+
+function rodape() {
+  return `<footer class="foot"><a href="guia/">📚 Guia de audiências</a><a href="#/ajuda">Ajuda</a><a href="#/anuncie">Anuncie aqui</a><a href="sobre.html">Sobre e contato</a><a href="privacidade.html">Privacidade</a><a href="termos.html">Termos</a></footer>`;
 }
 
 function vLista() {
@@ -195,31 +212,37 @@ function vForm(id) {
       <p>Você já tem ${futuras().length} audiências agendadas. O plano grátis permite ${esc(S.site.premium.limiteGratis)}.</p>
       <a class="btn primary" href="#/premium">⭐ Liberar ilimitado por R$ ${esc(S.site.premium.preco)}</a></section>`;
   }
-  const v = a || { status: 'agendada', modalidade: 'presencial', papel: '', tipo: '' };
-  const opt = (arr, cur) => arr.map((o) => `<option ${o === cur ? 'selected' : ''}>${esc(o)}</option>`).join('');
+  const v = a || { status: 'agendada', modalidade: 'presencial', papel: '', tipo: '', fase: '' };
+  const opt = (arr, cur) => '<option value="">Selecione…</option>' + arr.map((o) => `<option ${o === cur ? 'selected' : ''}>${esc(o)}</option>`).join('');
   return `
   <h1>${a ? 'Editar audiência' : 'Nova audiência'}</h1>
+  ${a ? '' : `<details class="card paste" open>
+    <summary>📋 Cole aqui o texto da intimação <small>(opcional — preenche sozinho)</small></summary>
+    <textarea id="intimacao" rows="4" maxlength="5000" placeholder="Copie a mensagem, e-mail ou carta que você recebeu e cole aqui."></textarea>
+    <button type="button" class="btn small primary" data-act="ler-intimacao">Preencher automaticamente</button>
+  </details>`}
   <form id="f-aud" class="card" novalidate>
-    <label>Do que se trata? <small>(resumo para você lembrar)</small>
-      <input name="titulo" required maxlength="120" value="${esc(v.titulo)}" placeholder="Ex.: Testemunha — roubo na Av. Brasil (BO 1234/2026)"></label>
+    <label>Do que se trata? <small>(um resumo para você lembrar)</small>
+      <input name="titulo" required maxlength="120" value="${esc(v.titulo)}" placeholder="Ex.: Acordo com a operadora de celular"></label>
     <div class="grid2">
       <label>Data<input name="data" type="date" required value="${esc(v.data)}"></label>
       <label>Hora<input name="hora" type="time" required value="${esc(v.hora)}"></label>
     </div>
+    <label>Tipo de audiência<select name="fase">${opt(FASES_LISTA, v.fase)}</select><small id="fase-msg" class="hint">${esc(FASES[v.fase] || '')}</small></label>
     <div class="grid2">
       <label>Seu papel<select name="papel">${opt(PAPEIS, v.papel)}</select></label>
-      <label>Tipo<select name="tipo">${opt(TIPOS, v.tipo)}</select></label>
+      <label>Área<select name="tipo">${opt(AREAS, v.tipo)}</select></label>
     </div>
     <label>Nº do processo <small>(padrão CNJ, opcional)</small>
       <input name="processo" inputmode="numeric" maxlength="25" value="${esc(v.processo)}" placeholder="0000000-00.0000.0.00.0000"><small id="cnj-msg" class="hint"></small></label>
-    <label>Vara / juízo<input name="vara" maxlength="120" value="${esc(v.vara)}" placeholder="Ex.: 2ª Vara Criminal de Campinas"></label>
+    <label>Vara / juízo<input name="vara" maxlength="120" value="${esc(v.vara)}" placeholder="Ex.: 2ª Vara Cível de Campinas"></label>
     <fieldset class="seg"><legend>Modalidade</legend>
       <label><input type="radio" name="modalidade" value="presencial" ${v.modalidade !== 'virtual' ? 'checked' : ''}><span>Presencial</span></label>
       <label><input type="radio" name="modalidade" value="virtual" ${v.modalidade === 'virtual' ? 'checked' : ''}><span>Virtual</span></label>
     </fieldset>
     <label class="m-pres">Endereço do fórum<input name="local" maxlength="200" value="${esc(v.local)}" placeholder="Rua, número, cidade"></label>
     <label class="m-virt">Link da sala virtual<input name="link" type="url" maxlength="500" value="${esc(v.link)}" placeholder="https://"></label>
-    <label>Observações<textarea name="obs" rows="3" maxlength="1000" placeholder="Levar documento, farda, nº do BO, nome do réu…">${esc(v.obs)}</textarea></label>
+    <label>Observações<textarea name="obs" rows="3" maxlength="1000" placeholder="Nome do advogado, documentos que pediram, testemunhas…">${esc(v.obs)}</textarea></label>
     ${a ? `<label>Situação<select name="status">${Object.entries(STATUS).map(([k, t]) => `<option value="${k}" ${k === v.status ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
     <div class="row"><button class="btn primary" type="submit">Salvar</button><a class="btn" href="${a ? '#/ver/' + esc(a.id) : '#/'}">Cancelar</a></div>
   </form>`;
@@ -238,8 +261,9 @@ function vVer(id) {
     <h3 class="sec">Do que se trata</h3>
     <dl>
       ${row('Quando', esc(fmtData(d)) + ' às <b>' + esc(fmtHora(d)) + '</b>')}
+      ${row('Tipo', esc(a.fase && a.fase !== 'Outra' ? a.fase : ''))}
       ${row('Seu papel', esc(a.papel))}
-      ${row('Tipo', esc(a.tipo))}
+      ${row('Área', esc(a.tipo))}
       ${row('Processo', a.processo ? esc(a.processo) + (validCNJ(a.processo) ? '' : ' <small class="warn-t">(conferir número)</small>') : '')}
       ${row('Vara / juízo', esc(a.vara))}
       ${row('Modalidade', a.modalidade === 'virtual' ? 'Virtual (online)' : 'Presencial')}
@@ -254,12 +278,23 @@ function vVer(id) {
       ${a.processo ? `<button class="btn" data-act="copy" data-v="${esc(a.processo)}">📋 Copiar nº do processo</button>` : ''}
     </div>
   </section>
+  ${FASES[a.fase] ? `<section class="card explica"><h3>💡 O que acontece nessa audiência</h3><p>${esc(FASES[a.fase])}</p><p class="small"><a href="guia/">Leia mais no Guia de audiências →</a></p></section>` : ''}
+  ${a.status === 'agendada' ? checklistHtml(a) : ''}
   <div class="row"><a class="btn" href="#/editar/${esc(a.id)}">✏️ Editar</a><button class="btn danger" data-act="del" data-id="${esc(a.id)}">Excluir</button></div>`;
+}
+
+function checklistHtml(a) {
+  let feitos = {}; try { feitos = JSON.parse(localStorage.getItem('pma-check-' + a.id) || '{}'); } catch { /* ok */ }
+  const itens = checklist(a);
+  const ok = itens.filter((_, i) => feitos[i]).length;
+  return `<section class="card"><h3>✅ O que levar e como se preparar <small class="muted">(${ok}/${itens.length})</small></h3>
+    <ul class="todo">${itens.map((t, i) => `<li><label><input type="checkbox" data-check="${esc(a.id)}" data-i="${i}" ${feitos[i] ? 'checked' : ''}> ${esc(t)}</label></li>`).join('')}</ul></section>`;
 }
 
 function vBuscar() {
   const p = S.perfil;
-  const nomes = [p.nome].filter(Boolean);
+  const nomes = [p.nome, p.outroNome].filter(Boolean);
+  const lim = limitesBusca(S.site, premium());
   const links = (n) => `
     <a class="btn small" href="https://comunica.pje.jus.br/consulta?nomeParte=${encodeURIComponent(n)}" target="_blank" rel="noopener">Comunicações processuais (CNJ)</a>
     <a class="btn small" href="https://queridodiario.ok.org.br/pesquisa?term=${encodeURIComponent('"' + n + '"')}" target="_blank" rel="noopener">Querido Diário (diários municipais)</a>
@@ -267,20 +302,39 @@ function vBuscar() {
   return `
   <h1>Buscar meu nome</h1>
   <p class="muted">Procura seu nome em fontes <b>públicas e gratuitas</b>: comunicações processuais do CNJ (intimações publicadas pelos tribunais) e diários oficiais. Ao achar algo, cadastre a audiência com um toque.</p>
-  ${premium() ? `
   <form id="f-busca" class="card">
-    <label>Nome a procurar<select name="nome">${nomes.map((n) => `<option>${esc(n)}</option>`).join('')}</select></label>
+    <label>Nome a procurar<select name="nome">${nomes.map((n) => `<option>${esc(n)}</option>`).join('')}</select>
+      <small class="hint">A busca é sempre pelo seu nome. Aparece em processos com outro nome (de solteira, social)? Cadastre em <a href="#/conta">Minha conta</a>.</small></label>
     <label>Período<select name="dias"><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="7">Últimos 7 dias</option></select></label>
+    <p class="uso" id="uso">${premium() ? `Seu plano: ${lim.dia} buscas por dia, até ${lim.mes} por mês.` : `Plano grátis: ${lim.mes} buscas por mês. <a href="#/premium">Premium: ${limitesBusca(S.site, true).dia} por dia</a>.`}</p>
     <button class="btn primary" type="submit">🔎 Buscar agora</button>
   </form>
-  <div id="res"></div>` : `
-  <section class="card center"><p>🔒 A busca automática faz parte do <b>Premium</b>.</p><a class="btn primary" href="#/premium">Assinar por R$ ${esc(S.site.premium.preco)}</a>
-  <p class="muted small">Enquanto isso, você pode consultar manualmente:</p><div class="row wrap center">${links(nomes[0] || '')}</div></section>`}
+  ${adHtml(S.site, 'busca', premium())}
+  <div id="res"></div>
+  <details class="card"><summary>Consultar direto nos sites oficiais</summary><div class="row wrap">${links(nomes[0] || '')}</div></details>
   <p class="muted small">Atenção: homônimos são comuns — confira sempre o número do processo e o órgão. Este serviço não substitui a intimação oficial.</p>`;
 }
 
+async function mostrarUso() {
+  const box = $('#uso'); if (!box) return;
+  try {
+    const u = await S.store.usoBusca(), lim = limitesBusca(S.site, premium());
+    box.innerHTML = premium()
+      ? `Hoje: <b>${u.dia}/${lim.dia}</b> buscas · Este mês: <b>${u.mes}/${lim.mes}</b>`
+      : `Este mês: <b>${u.mes}/${lim.mes}</b> buscas grátis. <a href="#/premium">Premium: ${limitesBusca(S.site, true).dia} por dia</a>.`;
+  } catch { /* sem conexão: mantém o texto padrão */ }
+}
+
 async function buscar(nome, dias) {
-  const res = $('#res'); res.innerHTML = '<p class="muted">Buscando…</p>';
+  const res = $('#res');
+  // Conta a busca antes de consultar: o servidor recusa se passar do limite.
+  try { await S.store.registrarBusca(limitesBusca(S.site, premium())); }
+  catch (er) {
+    res.innerHTML = `<section class="card center"><p>⏳ ${esc(authMessage(er))}</p>${premium() ? '' : `<a class="btn primary" href="#/premium">Liberar ${esc(limitesBusca(S.site, true).dia)} buscas por dia com o Premium</a>`}</section>`;
+    return;
+  }
+  mostrarUso();
+  res.innerHTML = '<p class="muted">Buscando…</p>';
   const ini = new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
   const blocos = [];
   const fontes = [
@@ -349,12 +403,48 @@ function vApoie() {
   <div id="doa-box"></div>`;
 }
 
+function vAjuda() {
+  const c = S.site.contato, L = S.site.limites, p = S.site.premium;
+  const q = (t, r) => `<details class="card faq"><summary>${t}</summary><div>${r}</div></details>`;
+  return `<h1>Ajuda</h1>
+  ${q('Como instalar o app no celular?', '<p><b>iPhone:</b> abra o site no Safari, toque em <b>Compartilhar</b> ⬆️ e depois em <b>Adicionar à Tela de Início</b>.</p><p><b>Android:</b> no Chrome, toque no aviso <b>Instalar app</b> ou no menu ⋮ → <b>Instalar app</b>.</p>')}
+  ${q('Como recebo os lembretes?', '<p>Ative as notificações na tela inicial do app. Para ter alarme garantido mesmo com o celular sem internet, abra a audiência e toque em <b>Agenda do celular</b>: o alarme fica salvo no calendário do aparelho.</p><p>No iPhone, as notificações só funcionam com o app instalado na Tela de Início (iOS 16.4 ou mais novo).</p>')}
+  ${q('Como cadastrar uma audiência rápido?', '<p>Toque em <b>＋ Nova</b>, cole o texto da intimação (mensagem, e-mail ou carta) e toque em <b>Preencher automaticamente</b>. Confira os dados e salve.</p>')}
+  ${q('O que é grátis e o que é Premium?', `<p><b>Grátis:</b> até ${esc(p.limiteGratis)} audiências agendadas, lembretes, lista do que levar e ${esc(L.buscasGratisMes)} buscas do seu nome por mês.</p><p><b>Premium (R$ ${esc(p.preco)}, pagamento único por Pix):</b> audiências ilimitadas, ${esc(L.buscasPremiumDia)} buscas por dia (até ${esc(L.buscasPremiumMes)} por mês), sem anúncios, lembretes personalizados e exportar tudo para a agenda.</p>`)}
+  ${q('Por que existe limite de buscas?', '<p>As buscas consultam serviços públicos da Justiça. O limite mantém o app rápido e justo para todos e evita uso abusivo. A busca é sempre pelo seu próprio nome: o app é pessoal, uma conta por pessoa.</p>')}
+  ${q('Como pago o Premium?', '<p>Em <b>Premium</b>, toque em <b>Pagar com Pix</b>, pague pelo app do seu banco (QR Code ou copia e cola) e depois toque em <b>Já paguei</b>. Conferimos o pagamento e liberamos sua conta, normalmente em poucas horas.</p>')}
+  ${q('Meus dados estão seguros?', '<p>Sim. Só você vê suas audiências, a conexão é criptografada e você pode baixar ou excluir seus dados quando quiser, em <b>Minha conta</b>. Não vendemos nem compartilhamos dados.</p>')}
+  ${q('O app substitui a intimação ou um advogado?', '<p>Não. É um organizador pessoal. Confira sempre data, hora e local na intimação oficial. Para orientação sobre o seu caso, procure um advogado ou a Defensoria Pública (atendimento gratuito para quem não pode pagar).</p>')}
+  <section class="card center"><p>Não achou sua resposta?</p><div class="row wrap center">
+    ${c.whatsapp ? `<a class="btn primary" href="https://wa.me/${esc(c.whatsapp)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
+    ${c.email ? `<a class="btn" href="mailto:${esc(c.email)}">✉️ ${esc(c.email)}</a>` : ''}
+    <a class="btn" href="guia/">📚 Guia de audiências</a></div></section>`;
+}
+
+function vAnuncie() {
+  const c = S.site.contato;
+  const zap = (pac) => `https://wa.me/${encodeURIComponent(c.whatsapp)}?text=${encodeURIComponent(`Olá! Quero anunciar no Alerta Audiência${pac ? ' — pacote "' + pac + '"' : ''}.`)}`;
+  return `<section class="hero"><div class="hero-badge">📢 Para empresas e profissionais</div>
+    <h1>Anuncie para quem tem audiência marcada.</h1>
+    <p>Seu anúncio aparece para pessoas que estão, agora, resolvendo uma questão na Justiça: acordos, causas trabalhistas, família, consumidor, INSS.</p>
+    ${S.site.publico ? `<p><b>${esc(S.site.publico)}</b></p>` : ''}</section>
+  <h3 class="sec">Ideal para</h3>
+  <div class="chips static"><span>Advogados e escritórios</span><span>Correspondentes jurídicos</span><span>Cursos e concursos</span><span>Contadores</span><span>Peritos e assistentes técnicos</span><span>Tradutores e despachantes</span></div>
+  <h3 class="sec">Pacotes</h3>
+  <div class="pacotes">${S.site.pacotes.map((p) => `<section class="card pacote"><h3>${esc(p.nome)}</h3><p class="preco">${esc(p.preco)}</p><p class="muted">${esc(p.desc)}</p>
+    ${c.whatsapp ? `<a class="btn primary block" href="${esc(zap(p.nome))}" target="_blank" rel="noopener">Quero este</a>` : ''}</section>`).join('')}</div>
+  <section class="card"><h3>Como funciona</h3><ol class="steps"><li>Fale com a gente e escolha o pacote.</li><li>Envie título, texto curto, imagem e o link do seu site ou WhatsApp.</li><li>Pague por Pix e o anúncio entra no ar no mesmo dia, com etiqueta "Patrocinado".</li><li>Os cliques chegam ao seu site marcados (utm_source=alerta-audiencia), para você medir o retorno.</li></ol>
+    <p class="muted small">Não aceitamos anúncios enganosos, de promessa de resultado em processos ou que violem o Código de Ética da OAB.</p>
+    <div class="row wrap">${c.whatsapp ? `<a class="btn primary" href="${esc(zap(''))}" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>` : ''}${c.email ? `<a class="btn" href="mailto:${esc(c.email)}?subject=${encodeURIComponent('Anunciar no Alerta Audiência')}">✉️ E-mail</a>` : ''}${!c.whatsapp && !c.email ? '<p class="muted">Contato comercial em breve.</p>' : ''}</div></section>`;
+}
+
 function vConta() {
   const p = S.perfil, lem = p.lembretes || LEMBRETES_PADRAO;
   return `
   <h1>Minha conta</h1>
   <form id="f-perfil" class="card">
     <label>Nome completo<input name="nome" maxlength="120" value="${esc(p.nome)}" required></label>
+    <label>Outro nome que aparece em processos <small>(opcional: de solteira, nome social…)</small><input name="outroNome" maxlength="120" value="${esc(p.outroNome)}"></label>
     <label>UF<select name="uf">${UFS.map((u) => `<option ${u === p.uf ? 'selected' : ''}>${u}</option>`).join('')}</select></label>
     <fieldset><legend>Lembretes ${premium() ? '' : '<small>(personalizar é Premium ⭐)</small>'}</legend>
       <div class="chips">${LEMBRETE_OPCOES.map(([m, t]) => `<label class="chip"><input type="checkbox" name="lem" value="${m}" ${lem.includes(m) ? 'checked' : ''} ${premium() ? '' : 'disabled'}><span>${t} antes</span></label>`).join('')}</div>
@@ -374,7 +464,7 @@ function vConta() {
   <details class="card"><summary>Zona de perigo</summary>
     <p class="muted">Excluir a conta apaga para sempre seu perfil e suas audiências.</p>
     <button class="btn danger" data-act="excluir-conta">Excluir minha conta</button></details>
-  <p class="center small"><a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p>`;
+  `;
 }
 
 /* ================= eventos ================= */
@@ -390,13 +480,14 @@ function bind(r) {
       $('#cnj-msg').textContent = !n ? '' : n < 20 ? `${n}/20 dígitos` : ok ? '✓ número válido' : '⚠ dígito verificador não confere — confira a intimação';
     };
     fa.processo.onblur = () => { fa.processo.value = formatCNJ(fa.processo.value); };
+    fa.fase.onchange = () => { $('#fase-msg').textContent = FASES[fa.fase.value] || ''; };
     fa.onsubmit = async (e) => {
       e.preventDefault();
       const d = Object.fromEntries(new FormData(fa));
       if (!d.titulo.trim() || !d.data || !d.hora) return toast('Preencha o resumo, a data e a hora.', 'err');
       if (d.link && !safeUrl(d.link)) return toast('Link da sala inválido (use https://).', 'err');
       const [, id] = route();
-      const a = { titulo: d.titulo.trim(), data: d.data, hora: d.hora, papel: d.papel, tipo: d.tipo, processo: formatCNJ(d.processo), vara: d.vara.trim(), modalidade: d.modalidade, local: d.local.trim(), link: d.modalidade === 'virtual' ? safeUrl(d.link) : '', obs: d.obs.trim(), status: d.status || 'agendada' };
+      const a = { titulo: d.titulo.trim(), data: d.data, hora: d.hora, fase: d.fase, papel: d.papel, tipo: d.tipo, processo: formatCNJ(d.processo), vara: d.vara.trim(), modalidade: d.modalidade, local: d.local.trim(), link: d.modalidade === 'virtual' ? safeUrl(d.link) : '', obs: d.obs.trim(), status: d.status || 'agendada' };
       if (r === 'editar') a.id = id;
       const btn = $('button[type=submit]', fa); btn.disabled = true;
       try { const nid = await S.store.saveAudiencia(a); await reload(); toast('Audiência salva ✅'); go('#/ver/' + nid); }
@@ -410,12 +501,15 @@ function bind(r) {
     e.preventDefault();
     const d = Object.fromEntries(new FormData(fp));
     const lem = premium() ? $$('input[name=lem]:checked', fp).map((x) => Number(x.value)) : (S.perfil.lembretes || LEMBRETES_PADRAO);
-    await S.store.saveProfile({ ...S.perfil, nome: d.nome.trim(), uf: d.uf, lembretes: lem.length ? lem : LEMBRETES_PADRAO });
+    await S.store.saveProfile({ ...S.perfil, nome: d.nome.trim(), outroNome: (d.outroNome || '').trim(), uf: d.uf, lembretes: lem.length ? lem : LEMBRETES_PADRAO });
     await reload(); toast('Dados salvos ✅');
   };
 
   const fb = $('#f-busca');
-  if (fb) fb.onsubmit = (e) => { e.preventDefault(); buscar(fb.nome.value, Number(fb.dias.value)); };
+  if (fb) {
+    mostrarUso();
+    fb.onsubmit = async (e) => { e.preventDefault(); const b = $('button[type=submit]', fb); b.disabled = true; try { await buscar(fb.nome.value, Number(fb.dias.value)); } finally { b.disabled = false; } };
+  }
 
   if (r === 'premium') loadMeusPagamentos();
 }
@@ -429,6 +523,13 @@ async function loadMeusPagamentos() {
     ${ps.some((p) => p.status === 'recusado') && S.site.contato.whatsapp ? `<p class="small">Pagou e não foi localizado? <a href="https://wa.me/${esc(S.site.contato.whatsapp.replace(/\D/g, ''))}" target="_blank" rel="noopener">Fale conosco</a> com o comprovante.</p>` : ''}</section>`;
 }
 
+app.addEventListener('change', (e) => {
+  const c = e.target.closest('[data-check]'); if (!c) return;
+  const key = 'pma-check-' + c.dataset.check;
+  let f = {}; try { f = JSON.parse(localStorage.getItem(key) || '{}'); } catch { /* ok */ }
+  f[c.dataset.i] = c.checked; try { localStorage.setItem(key, JSON.stringify(f)); } catch { /* ok */ }
+});
+
 app.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const act = b.dataset.act;
@@ -438,14 +539,32 @@ app.addEventListener('click', async (e) => {
   if (act === 'ics') { const a = S.aud.find((x) => x.id === b.dataset.id); download('audiencia.ics', buildICS([a], S.perfil.lembretes || LEMBRETES_PADRAO), 'text/calendar'); return; }
   if (act === 'ics-all') { if (!premium()) return go('#/premium'); download('minhas-audiencias.ics', buildICS(futuras(), S.perfil.lembretes || LEMBRETES_PADRAO), 'text/calendar'); return; }
   if (act === 'del') { if (!confirm('Excluir esta audiência?')) return; await S.store.removeAudiencia(b.dataset.id); await reload(); toast('Excluída.'); go('#/audiencias'); return; }
-  if (act === 'pagar') { const tx = novoTxid(); $('#pix-box').innerHTML = pixBox(tx); $('#pix-box').scrollIntoView({ behavior: 'smooth' }); return; }
+  if (act === 'pagar') { await loadQR(); const tx = novoTxid(); $('#pix-box').innerHTML = pixBox(tx); $('#pix-box').scrollIntoView({ behavior: 'smooth' }); return; }
+  if (act === 'instalar' && S.install) { S.install.prompt(); try { await S.install.userChoice; } catch { /* ok */ } S.install = null; render(); return; }
+  if (act === 'no-install') { try { localStorage.setItem('pma-no-install', '1'); } catch { /* ok */ } render(); return; }
+  if (act === 'ler-intimacao') {
+    const r = lerIntimacao($('#intimacao').value), fa = $('#f-aud');
+    const campos = Object.keys(r);
+    if (!campos.length) return toast('Não encontramos dados no texto. Preencha manualmente.', 'err');
+    for (const k of ['data', 'hora', 'processo', 'vara', 'link']) if (r[k]) fa[k].value = k === 'processo' ? formatCNJ(r[k]) : r[k];
+    for (const k of ['fase', 'papel', 'tipo']) if (r[k]) fa[k].value = r[k];
+    if (r.modalidade) $(`input[name=modalidade][value=${r.modalidade}]`, fa).click();
+    if (!fa.titulo.value) fa.titulo.value = r.fase ? `Audiência — ${r.fase}` : 'Audiência';
+    fa.fase.onchange(); fa.processo.oninput();
+    $('details.paste').open = false;
+    toast(`Preenchemos ${campos.length} informações. Confira antes de salvar ✅`);
+    return;
+  }
   if (act === 'ja-paguei') {
+    const pend = (await S.store.meusPagamentos()).filter((p) => p.status === 'pendente').length;
+    if (pend >= 2) return toast('Você já tem pagamentos em análise. Aguarde a conferência 🙂', 'err');
     b.disabled = true;
     try { await S.store.criarPagamento({ txid: b.dataset.tx, valor: Number(S.site.premium.preco), produto: 'premium' }); $('#pix-box').innerHTML = '<section class="card center"><h2>Recebemos seu aviso ✅</h2><p>Assim que o Pix for conferido, seu Premium é liberado automaticamente nesta conta.</p></section>'; loadMeusPagamentos(); }
     catch (er) { toast(authMessage(er), 'err'); b.disabled = false; }
     return;
   }
   if (act === 'doar') {
+    await loadQR();
     let v = Number(b.dataset.v);
     if (!v) { v = Number(String(prompt('Valor da doação (R$):', '10') || '').replace(',', '.')); if (!(v > 0)) return; }
     const code = pixPayload(S.site.pix, v, 'DOACAO', 'Apoio Alerta Audiência');

@@ -3,4 +3,9 @@ Allow: /$
 Allow: /index.html
 Allow: /privacidade.html
 Allow: /termos.html
+Allow: /sobre.html
+Allow: /guia/
+Allow: /assets/
 Disallow: /admin.html
+
+Sitemap: https://williancoder.github.io/pm-alerta-audiencias/sitemap.xml
